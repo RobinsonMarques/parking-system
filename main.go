@@ -1,19 +1,18 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"log"
+	//"github.com/RobinsonMarques/parking-system/database"
+	"github.com/RobinsonMarques/parking-system/dependencies"
 )
 
 func main() {
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	err := r.Run() // listen and serve on 0.0.0.0:8080
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	dependencies.CreateConnection()
+	//db.AutoMigrate(&database.Person{})
+	//db.AutoMigrate(&database.User{})
+	//db.AutoMigrate(&database.TrafficWarden{})
+	//db.AutoMigrate(&database.Admin{})
+	//db.AutoMigrate(&database.ParkingTicket{})
+	//db.AutoMigrate(&database.Vehicle{})
+	//db.AutoMigrate(&database.Billet{})
+	//db.AutoMigrate(&database.Recharge{})
 }
