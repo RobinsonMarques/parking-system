@@ -1,17 +1,19 @@
 package database
 
+import "gorm.io/gorm"
+
 //Modelos das tabelas do BD
 
 type Person struct {
-	PersonID uint   `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
+	gorm.Model
 	Name     string `gorm:"not null" json:"Name"`
 	Email    string `gorm:"unique;not null" json:"Email"`
 	Password string `gorm:"not null" json:"Password"`
 }
 
 type User struct {
-	UserID   uint `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
-	Person   Person
+	gorm.Model
+	Person   Person     `gorm:"embedded"`
 	Document string     `gorm:"unique;not null" json:"Document"`
 	Balance  float64    `gorm:"default:0.0" json:"Balance"`
 	Recharge []Recharge `json:"Recharges"`
@@ -19,38 +21,38 @@ type User struct {
 }
 
 type TrafficWarden struct {
-	TrafficWardenID uint `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
-	Person          Person
+	gorm.Model
+	Person Person `gorm:"embedded"`
 }
 
 type Admin struct {
-	AdminId uint `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
-	Person  Person
+	gorm.Model
+	Person Person `gorm:"embedded"`
 }
 
 type Vehicle struct {
-	VehicleID     uint            `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
+	gorm.Model
 	LicensePlate  string          `gorm:"unique;not null" json:"LicensePlate"`
 	VehicleModel  string          `gorm:"not null" json:"VehicleModel"`
 	VehicleType   string          `gorm:"not null" json:"VehicleType"`
-	IsActive      bool            `gorm:"not null" json:"IsActive"`
-	IsParked      bool            `gorm:"not null" json:"IsParked"`
+	IsActive      bool            `gorm:"not null default:false" json:"IsActive"`
+	IsParked      bool            `gorm:"not null default:false" json:"IsParked"`
 	UserID        uint            `gorm:"not null" json:"UserID"`
 	ParkingTicket []ParkingTicket `json:"ParkingTickets"`
 }
 
 type ParkingTicket struct {
-	ParkingTicketID uint    `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
-	Location        string  `gorm:"not null" json:"Location"`
-	ParkingTime     int     `gorm:"not null" json:"ParkingTime"`
-	StartTime       string  `gorm:"not null" json:"StartTime"`
-	EndTime         string  `gorm:"not null" json:"EndTime"`
-	Price           float64 `gorm:"not null" json:"Price"`
-	VehicleID       uint    `gorm:"not null" json:"VehicleID"`
+	gorm.Model
+	Location    string  `gorm:"not null" json:"Location"`
+	ParkingTime int     `gorm:"not null" json:"ParkingTime"`
+	StartTime   string  `gorm:"not null" json:"StartTime"`
+	EndTime     string  `gorm:"not null" json:"EndTime"`
+	Price       float64 `gorm:"not null" json:"Price"`
+	VehicleID   uint    `gorm:"not null" json:"VehicleID"`
 }
 
 type Recharge struct {
-	RechargeID  uint    `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
+	gorm.Model
 	Date        string  `gorm:"not null" json:"Date"`
 	Value       float64 `gorm:"not null" json:"Value"`
 	IsPaid      bool    `gorm:"not null" json:"IsPaid"`
@@ -60,7 +62,7 @@ type Recharge struct {
 }
 
 type Billet struct {
-	BilletID   uint   `gorm:"primary_key;AUTO_INCREMENT" json:"ID"`
+	gorm.Model
 	BilletLink string `json:"BilletLink"`
-	RechargeID uint   `gorm:"not null" json:"RechargeID"`
+	RechargeID uint   `json:"RechargeID"`
 }

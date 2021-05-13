@@ -43,31 +43,36 @@ func CreateRecharge(recharge database.Recharge, db *gorm.DB) Result {
 	return Result{Data: data}
 }
 
-func GetUserByEmail(email string, db *gorm.DB) Result {
+func CreateBillet(billet database.Billet, db *gorm.DB) Result {
+	data := db.Create(&billet)
+	return Result{Data: data}
+}
+
+func GetUserByEmail(email string, db *gorm.DB) []database.User {
 	var user []database.User
 
-	data := db.Where("Email = ?", email).First(&user)
-	return Result{Data: data}
+	db.Where("Email = ?", email).First(&user)
+	return user
 }
 
-func GetTrafficWardenByEmail(email string, db *gorm.DB) Result {
+func GetTrafficWardenByEmail(email string, db *gorm.DB) []database.TrafficWarden {
 	var trafficWarden []database.TrafficWarden
 
-	data := db.Where("Email = ?", email).First(&trafficWarden)
-	return Result{Data: data}
+	db.Where("Email = ?", email).First(&trafficWarden)
+	return trafficWarden
 }
 
-func GetAdminByEmail(email string, db *gorm.DB) Result {
+func GetAdminByEmail(email string, db *gorm.DB) []database.Admin {
 	var admin []database.Admin
-	data := db.Where("Email = ?", email).First(&admin)
-	return Result{Data: data}
+	db.Where("Email = ?", email).First(&admin)
+	return admin
 }
 
-func GetAllVehicles(db *gorm.DB) Result {
+func GetAllVehicles(db *gorm.DB) []database.Vehicle {
 	var vehicle []database.Vehicle
 
-	data := db.Find(&vehicle)
-	return Result{Data: data}
+	db.Find(&vehicle)
+	return vehicle
 }
 
 func GetVehiclesByUserId(user database.User, db *gorm.DB) Result {
@@ -105,30 +110,29 @@ func GetLastParkingTicketFromVehicle(vehicle database.Vehicle, db *gorm.DB) Resu
 }
 
 func UpdateUser(id uint, name string, email string, document string, db *gorm.DB) {
-	user := database.User{UserID: id}
-	db.Model(&user).Update("Name", name)
-	db.Model(&user).Update("Email", email)
-	db.Model(&user).Update("Document", document)
+	db.Table("users").Where("id = ?", id).Update("name", name)
+	db.Table("users").Where("id = ?", id).Update("email", email)
+	db.Table("users").Where("id = ?", id).Update("document", document)
 
 }
 
 func UpdateAdmin(id uint, name string, email string, db *gorm.DB) {
-	admin := database.Admin{AdminId: id}
-	db.Model(&admin).Update("Name", name)
-	db.Model(&admin).Update("Email", email)
+	//admin := database.Admin{AdminId: id}
+	//db.Model(&admin).Update("Name", name)
+	//db.Model(&admin).Update("Email", email)
 }
 
 func UpdateTrafficWarden(id uint, name string, email string, db *gorm.DB) {
-	trafficWarden := database.TrafficWarden{TrafficWardenID: id}
-	db.Model(&trafficWarden).Update("Name", name)
-	db.Model(&trafficWarden).Update("Email", email)
+	//trafficWarden := database.TrafficWarden{TrafficWardenID: id}
+	//db.Model(&trafficWarden).Update("Name", name)
+	//db.Model(&trafficWarden).Update("Email", email)
 }
 
 func UpdateVehicle(vehicleID uint, licensePlate string, vehicleModel string, vehicleType string, db *gorm.DB) {
-	vehicle := database.Vehicle{VehicleID: vehicleID}
-	db.Model(&vehicle).Update("LicensePlate", licensePlate)
-	db.Model(&vehicle).Update("VehicleModel", vehicleModel)
-	db.Model(&vehicle).Update("VehicleType", vehicleType)
+	//vehicle := database.Vehicle{VehicleID: vehicleID}
+	//db.Model(&vehicle).Update("LicensePlate", licensePlate)
+	//db.Model(&vehicle).Update("VehicleModel", vehicleModel)
+	//db.Model(&vehicle).Update("VehicleType", vehicleType)
 }
 
 func UpdateVehicleOwner(userID uint, db *gorm.DB) {

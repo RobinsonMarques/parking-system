@@ -1,0 +1,4 @@
+    currentTime := time.Now()
+	endTime := currentTime.Add(time.Hour)
+	ticket := database.ParkingTicket{Location: "Um pulinho daqui", ParkingTime: 1, StartTime: currentTime.String(), EndTime: endTime.String(), Price: 1.99, VehicleID: 1}
+	crud.CreateParkingTicket(ticket, db)
