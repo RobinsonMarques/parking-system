@@ -75,38 +75,38 @@ func GetAllVehicles(db *gorm.DB) []database.Vehicle {
 	return vehicle
 }
 
-func GetVehiclesByUserId(user database.User, db *gorm.DB) Result {
+func GetVehiclesByUserId(userID uint, db *gorm.DB) []database.Vehicle {
 	var vehicles []database.Vehicle
-	data := db.Where("VehicleID <> ?", user.Vehicle).Find(&vehicles)
-	return Result{Data: data}
+	db.Where("user_id = ?", userID).Find(&vehicles)
+	return vehicles
 }
 
-func GetUserByDocument(document string, db *gorm.DB) Result {
+func GetUserByDocument(document string, db *gorm.DB) []database.User {
 	var user []database.User
 
-	data := db.Where("Document = ?", document).First(&user)
-	return Result{Data: data}
+	db.Where("Document = ?", document).First(&user)
+	return user
 }
 
-func GetVehicleByLicensePlate(licensePlate string, db *gorm.DB) Result {
+func GetVehicleByLicensePlate(licensePlate string, db *gorm.DB) []database.Vehicle {
 	var vehicle []database.Vehicle
 
-	data := db.Where("LicensePlate = ?", licensePlate).First(&vehicle)
-	return Result{Data: data}
+	db.Where("license_plate = ?", licensePlate).First(&vehicle)
+	return vehicle
 }
 
-func GetVehicleById(id uint, db *gorm.DB) Result {
+func GetVehicleById(id uint, db *gorm.DB) []database.Vehicle {
 	var vehicle []database.Vehicle
 
-	data := db.Where("VehicleID = ?", id).First(&vehicle)
-	return Result{Data: data}
+	db.Where("id = ?", id).First(&vehicle)
+	return vehicle
 }
 
-func GetLastParkingTicketFromVehicle(vehicle database.Vehicle, db *gorm.DB) Result {
+func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTicket {
 	var tickets []database.ParkingTicket
 
-	data := db.Where("ParkingTicketID <> ?", vehicle.ParkingTicket).Last(&tickets)
-	return Result{Data: data}
+	db.Where("vehicle_id = ?", id).Last(&tickets)
+	return tickets
 }
 
 func UpdateUser(id uint, name string, email string, document string, db *gorm.DB) {

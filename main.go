@@ -63,7 +63,7 @@ func main() {
 
 	//crud.CreateTrafficWarden(warden, db)
 
-	//Criar carro
+	//Criar veiculo
 	//veiculo := database.Vehicle{
 	//Model:         gorm.Model{},
 	//LicensePlate:  "abc-1234",
@@ -122,4 +122,29 @@ func main() {
 
 	//Consultar guarda por email
 	fmt.Println(crud.GetTrafficWardenByEmail("guarda@guarda.com", db))
+
+	//Consultar admin por email
+	fmt.Println(crud.GetAdminByEmail("Admin@admin.com", db))
+
+	//Consultar todos os veículos
+	fmt.Println(crud.GetAllVehicles(db))
+
+	//Consultar veículos pelo id do usuário
+	fmt.Println(crud.GetVehiclesByUserId(1, db))
+
+	//Consultar user por documento
+	fmt.Println(crud.GetUserByDocument("123.321.456-90", db))
+
+	//Consultar veículo pela placa
+	fmt.Println(crud.GetVehicleByLicensePlate("abc-1234", db))
+
+	//Consultar veículo pelo id
+	fmt.Println(crud.GetVehicleById(2, db))
+
+	//Consultar ultimo ticket do veiculo
+	fmt.Println(crud.GetLastParkingTicketFromVehicle(1, db))
+
+	//Update no user
+	crud.UpdateUser(1, "José", "josemaria@silva.com", "123.456-08", db)
+
 }
