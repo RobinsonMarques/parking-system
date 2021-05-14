@@ -18,16 +18,18 @@ func main() {
 	//db.AutoMigrate(&database.Recharge{})
 
 	//Criar user
+	//hashedPassword := utils.CreateHashPassword("12345")
+
 	//personUser := database.Person{
 	//Model:    gorm.Model{},
-	//Name:     "Jaaj",
-	//Email:    "teste@teste.com",
-	//Password: "123456",
+	//Name:     "João",
+	//Email:    "joao@joao.com",
+	//Password: hashedPassword,
 	//}
 	//user := database.User{
 	//Model:    gorm.Model{},
 	//Person:   personUser,
-	//Document: "123.321.456-90",
+	//Document: "123.321.456-60",
 	//Balance:  0,
 	//Recharge: nil,
 	//Vehicle:  nil,
@@ -94,7 +96,7 @@ func main() {
 	//crud.CreateParkingTicket(ticket, db)
 
 	//Criar recarga
-	//currentTime = time.Now()
+	//currentTime := time.Now()
 
 	//recarga := database.Recharge{
 	//Model:       gorm.Model{},
@@ -111,8 +113,8 @@ func main() {
 	//Criar boleto
 	//boleto := database.Billet{
 	//Model:      gorm.Model{},
-	//BilletLink: "www.link.com",
-	//RechargeID: 1,
+	//BilletLink: "www.link2.com",
+	//RechargeID: 2,
 	//}
 
 	//crud.CreateBillet(boleto, db)
@@ -121,7 +123,7 @@ func main() {
 	fmt.Println(crud.GetUserByEmail("teste@teste.com", db))
 
 	//Consultar guarda por email
-	fmt.Println(crud.GetTrafficWardenByEmail("guarda@guarda.com", db))
+	fmt.Println(crud.GetTrafficWardenByEmail("guardinha@guardinha.com", db))
 
 	//Consultar admin por email
 	fmt.Println(crud.GetAdminByEmail("Admin@admin.com", db))
@@ -133,7 +135,7 @@ func main() {
 	fmt.Println(crud.GetVehiclesByUserId(1, db))
 
 	//Consultar user por documento
-	fmt.Println(crud.GetUserByDocument("123.321.456-90", db))
+	fmt.Println(crud.GetUserByDocument("123.321.456-08", db))
 
 	//Consultar veículo pela placa
 	fmt.Println(crud.GetVehicleByLicensePlate("abc-1234", db))
@@ -141,10 +143,55 @@ func main() {
 	//Consultar veículo pelo id
 	fmt.Println(crud.GetVehicleById(2, db))
 
-	//Consultar ultimo ticket do veiculo
+	//Consultar ultimo ticket do veículo
 	fmt.Println(crud.GetLastParkingTicketFromVehicle(1, db))
 
-	//Update no user
-	crud.UpdateUser(1, "José", "josemaria@silva.com", "123.456-08", db)
+	//Update user
+	crud.UpdateUser(1, "João", "joaomaria@silva.com", "123.321.456-08", db)
+
+	//Update admin
+	crud.UpdateAdmin(1, "adm", "adm@adm.com", db)
+
+	//Update traffic warden
+	crud.UpdateTrafficWarden(1, "Guarda", "guardinha@guardinha.com", db)
+
+	//Update veículo
+	crud.UpdateVehicle(1, "cda-4002", "Escort", "carro", db)
+
+	//Update dono do veículo
+	crud.UpdateVehicleOwner(1, 2, db)
+
+	//Update end_time
+	crud.UpdateEndTime(1, db)
+
+	//Update is_paid
+	crud.UpdateIsPaid(1, db)
+
+	//Update link do boleto
+	crud.UpdateBilletLink(1, "www.billet.com", db)
+
+	//Update saldo
+	crud.UpdateBalance("123.321.456-35", 50, db)
+
+	//Deletar Usuário
+	crud.DeleteUserByID(1, db)
+
+	//Deletar traffic warden
+	crud.DeleteTrafficWardenByID(1, db)
+
+	//Deletar admin
+	crud.DeleteAdminByID(1, db)
+
+	//Deletar veículo
+	crud.DeleteVehicleByID(1, db)
+
+	//Deletar ticket
+	crud.DeleteParkingTicketByID(1, db)
+
+	//Deletar recarga
+	crud.DeleteRechargeByID(2, db)
+
+	//Deletar boleto
+	crud.DeleteBilletByID(1, db)
 
 }

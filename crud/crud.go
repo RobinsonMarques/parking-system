@@ -109,6 +109,19 @@ func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTic
 	return tickets
 }
 
+func GetBalance(userDocument string, db *gorm.DB) float64 {
+	user := GetUserByDocument(userDocument, db)
+	balance := user[0]
+
+	return balance.Balance
+}
+
+func GetPassword(userEmail string, db *gorm.DB) string {
+	user := GetUserByEmail(userEmail, db)
+	password := user[0]
+	return password.Person.Password
+}
+
 func UpdateUser(id uint, name string, email string, document string, db *gorm.DB) {
 	db.Table("users").Where("id = ?", id).Update("name", name)
 	db.Table("users").Where("id = ?", id).Update("email", email)
@@ -117,69 +130,82 @@ func UpdateUser(id uint, name string, email string, document string, db *gorm.DB
 }
 
 func UpdateAdmin(id uint, name string, email string, db *gorm.DB) {
-	//admin := database.Admin{AdminId: id}
-	//db.Model(&admin).Update("Name", name)
-	//db.Model(&admin).Update("Email", email)
+	db.Table("admins").Where("id = ?", id).Update("name", name)
+	db.Table("admins").Where("id = ?", id).Update("email", email)
 }
 
 func UpdateTrafficWarden(id uint, name string, email string, db *gorm.DB) {
-	//trafficWarden := database.TrafficWarden{TrafficWardenID: id}
-	//db.Model(&trafficWarden).Update("Name", name)
-	//db.Model(&trafficWarden).Update("Email", email)
+	db.Table("traffic_wardens").Where("id = ?", id).Update("name", name)
+	db.Table("traffic_wardens").Where("id = ?", id).Update("Email", email)
 }
 
-func UpdateVehicle(vehicleID uint, licensePlate string, vehicleModel string, vehicleType string, db *gorm.DB) {
-	//vehicle := database.Vehicle{VehicleID: vehicleID}
-	//db.Model(&vehicle).Update("LicensePlate", licensePlate)
-	//db.Model(&vehicle).Update("VehicleModel", vehicleModel)
-	//db.Model(&vehicle).Update("VehicleType", vehicleType)
+func UpdateVehicle(id uint, licensePlate string, vehicleModel string, vehicleType string, db *gorm.DB) {
+	db.Table("vehicles").Where("id = ?", id).Update("license_plate", licensePlate)
+	db.Table("vehicles").Where("id = ?", id).Update("vehicle_model", vehicleModel)
+	db.Table("vehicles").Where("id = ?", id).Update("vehicle_type", vehicleType)
 }
 
-func UpdateVehicleOwner(userID uint, db *gorm.DB) {
-	db.Table("Vehicle").Where("UserId = ?", userID).Update("UserID", userID)
+func UpdateVehicleOwner(vehicleID, newOwnerID uint, db *gorm.DB) {
+	db.Table("vehicles").Where("id = ?", vehicleID).Update("user_id", newOwnerID)
 }
 
-func UpdateBalance(userID uint, extra string, db *gorm.DB) {
-	db.Table("User").Where("UserID = ?", userID).Update("Balance", gorm.Expr("Balance +", extra))
+func UpdateBalance(document string, extra float64, db *gorm.DB) {
+	balance := GetBalance(document, db)
+	db.Table("users").Where("document = ?", document).Update("balance", balance+extra)
 }
 
 func UpdateEndTime(ticketID uint, db *gorm.DB) {
 	currentTime := time.Now()
-	db.Table("ParkingTicket").Where("ParkingTicketID = ?", ticketID).Update("EndTime", currentTime.String())
+	db.Table("parking_tickets").Where("id = ?", ticketID).Update("end_time", currentTime.String())
 }
 
 func UpdateIsPaid(rechargeID uint, db *gorm.DB) {
-	db.Table("Recharge").Where("RechargeID = ?", rechargeID).Update("IsPaid", true)
+	db.Table("recharges").Where("id = ?", rechargeID).Update("is_paid", true)
 }
 
 func UpdateBilletLink(billetID uint, link string, db *gorm.DB) {
-	db.Table("Billet").Where("BilletID = ?", billetID).Update("BilletLink", link)
+	db.Table("billets").Where("id = ?", billetID).Update("billet_link", link)
 }
 
 func DeleteUserByID(userID uint, db *gorm.DB) {
-	db.Table("User").Where("UserID = ?", userID).Delete(&database.User{})
+	db.Table("users").Where("id = ?", userID).Delete(&database.User{})
+	DeleteVehiclesByUserID(userID, db)
+	DeleteRechargeByUserID(userID, db)
 }
 
 func DeleteTrafficWardenByID(trafficWardenID uint, db *gorm.DB) {
-	db.Table("TrafficWarden").Where("TrafficWardenID = ?", trafficWardenID).Delete(&database.TrafficWarden{})
+	db.Table("traffic_wardens").Where("id = ?", trafficWardenID).Delete(&database.TrafficWarden{})
 }
 
 func DeleteAdminByID(adminID uint, db *gorm.DB) {
-	db.Table("Admin").Where("AdminID = ?", adminID).Delete(&database.Admin{})
+	db.Table("admins").Where("id = ?", adminID).Delete(&database.Admin{})
 }
 
 func DeleteVehicleByID(vehicleID uint, db *gorm.DB) {
-	db.Table("Vehicle").Where("VehicleID = ?", vehicleID).Delete(&database.Vehicle{})
+	db.Table("vehicles").Where("id = ?", vehicleID).Delete(&database.Vehicle{})
 }
 
 func DeleteParkingTicketByID(parkingTicketID uint, db *gorm.DB) {
-	db.Table("ParkingTicket").Where("ParkingTicketID = ?", parkingTicketID).Delete(&database.ParkingTicket{})
+	db.Table("parking_tickets").Where("id = ?", parkingTicketID).Delete(&database.ParkingTicket{})
 }
 
 func DeleteRechargeByID(rechargeID uint, db *gorm.DB) {
-	db.Table("Recharge").Where("RechargeID = ?", rechargeID).Delete(&database.Recharge{})
+	db.Table("recharges").Where("id = ?", rechargeID).Delete(&database.Recharge{})
+	DeleteBilletByRechargeID(rechargeID, db)
 }
 
 func DeleteBilletByID(billetID uint, db *gorm.DB) {
-	db.Table("Billet").Where("BilletID = ?", billetID).Delete(&database.Billet{})
+	db.Table("billets").Where("id = ?", billetID).Delete(&database.Billet{})
+}
+
+func DeleteVehiclesByUserID(userID uint, db *gorm.DB) {
+	db.Table("vehicles").Where("user_id = ?", userID).Delete(&database.Vehicle{})
+}
+
+func DeleteBilletByRechargeID(rechargeID uint, db *gorm.DB) {
+	db.Table("billets").Where("recharge_id = ?", rechargeID).Delete(&database.Billet{})
+}
+
+func DeleteRechargeByUserID(userID uint, db *gorm.DB) {
+	db.Table("recharges").Where("user_id = ?", userID).Delete(&database.Recharge{})
 }
