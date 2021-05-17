@@ -48,22 +48,22 @@ func CreateBillet(billet database.Billet, db *gorm.DB) Result {
 	return Result{Data: data}
 }
 
-func GetUserByEmail(email string, db *gorm.DB) []database.User {
-	var user []database.User
+func GetUserByEmail(email string, db *gorm.DB) database.User {
+	var user database.User
 
 	db.Where("Email = ?", email).First(&user)
 	return user
 }
 
-func GetTrafficWardenByEmail(email string, db *gorm.DB) []database.TrafficWarden {
-	var trafficWarden []database.TrafficWarden
+func GetTrafficWardenByEmail(email string, db *gorm.DB) database.TrafficWarden {
+	var trafficWarden database.TrafficWarden
 
 	db.Where("Email = ?", email).First(&trafficWarden)
 	return trafficWarden
 }
 
-func GetAdminByEmail(email string, db *gorm.DB) []database.Admin {
-	var admin []database.Admin
+func GetAdminByEmail(email string, db *gorm.DB) database.Admin {
+	var admin database.Admin
 	db.Where("Email = ?", email).First(&admin)
 	return admin
 }
@@ -81,22 +81,22 @@ func GetVehiclesByUserId(userID uint, db *gorm.DB) []database.Vehicle {
 	return vehicles
 }
 
-func GetUserByDocument(document string, db *gorm.DB) []database.User {
-	var user []database.User
+func GetUserByDocument(document string, db *gorm.DB) database.User {
+	var user database.User
 
 	db.Where("Document = ?", document).First(&user)
 	return user
 }
 
-func GetVehicleByLicensePlate(licensePlate string, db *gorm.DB) []database.Vehicle {
-	var vehicle []database.Vehicle
+func GetVehicleByLicensePlate(licensePlate string, db *gorm.DB) database.Vehicle {
+	var vehicle database.Vehicle
 
 	db.Where("license_plate = ?", licensePlate).First(&vehicle)
 	return vehicle
 }
 
-func GetVehicleById(id uint, db *gorm.DB) []database.Vehicle {
-	var vehicle []database.Vehicle
+func GetVehicleById(id uint, db *gorm.DB) database.Vehicle {
+	var vehicle database.Vehicle
 
 	db.Where("id = ?", id).First(&vehicle)
 	return vehicle
@@ -111,15 +111,25 @@ func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTic
 
 func GetBalance(userDocument string, db *gorm.DB) float64 {
 	user := GetUserByDocument(userDocument, db)
-	balance := user[0]
+	balance := user
 
 	return balance.Balance
 }
 
-func GetPassword(userEmail string, db *gorm.DB) string {
-	user := GetUserByEmail(userEmail, db)
-	password := user[0]
-	return password.Person.Password
+func GetPassword(email string, userType string, db *gorm.DB) string {
+	if userType == "user" {
+		user := GetUserByEmail(email, db)
+		return user.Person.Password
+	} else if userType == "admin" {
+		admin := GetAdminByEmail(email, db)
+		return admin.Person.Password
+	} else if userType == "trafficWarden" {
+		trafficWarden := GetTrafficWardenByEmail(email, db)
+		return trafficWarden.Person.Password
+	} else {
+		return "Tipo de usuário inválido"
+	}
+
 }
 
 func UpdateUser(id uint, name string, email string, document string, db *gorm.DB) {

@@ -15,10 +15,24 @@ func main() {
 
 	r := gin.Default()
 
-	//Path /getallvehicles
+	//Path get all vehicles
 	r.GET("/vehicles", func(c *gin.Context) {
-		vehicles := crud.GetAllVehicles(db)
-		c.JSON(200, vehicles)
+		//valida o input
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "trafficWarden" || resp == "admin" {
+			vehicles := crud.GetAllVehicles(db)
+			c.JSON(200, vehicles)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+
 	})
 
 	//Path create user
@@ -43,8 +57,33 @@ func main() {
 			Vehicle:  nil,
 		}
 		crud.CreateUser(user, db)
-		c.JSON(http.StatusOK, gin.H{"data": user})
+		c.JSON(http.StatusOK, gin.H{"Response": "Usuário criado"})
 
+	})
+
+	//Path create admin
+	r.POST("/admins", func(c *gin.Context) {
+		//Valida o input
+		var input input2.CreateAdminInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+
+		if resp == "admin" {
+			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+
+			//Cria o admin
+			admin := database.Admin{
+				Person: input.Person,
+			}
+			crud.CreateAdmin(admin, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Admin criado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
 	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080
