@@ -86,5 +86,61 @@ func main() {
 		}
 	})
 
+	//Path create traffic warden
+	r.POST("/trafficwarden", func(c *gin.Context) {
+		//Valida o input
+		var input input2.CreateTrafficWarden
+
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+
+		if resp == "admin" {
+			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+
+			//Cria o admin
+			warden := database.TrafficWarden{
+				Person: input.Person,
+			}
+			crud.CreateTrafficWarden(warden, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Guarda criado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Path create vehicle
+	r.POST("/vehicles", func(c *gin.Context) {
+		var input input2.CreateVehicle
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if crud.GetUserByID(input.UserID, db).Person.Name != "" {
+			//Cria o veículo
+			veiculo := database.Vehicle{
+				LicensePlate:  input.LicensePlate,
+				VehicleModel:  input.VehicleModel,
+				VehicleType:   input.VehicleType,
+				IsActive:      false,
+				IsParked:      false,
+				UserID:        input.UserID,
+				ParkingTicket: nil,
+			}
+			crud.CreateVehicle(veiculo, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Veículo criado"})
+		} else {
+			c.JSON(http.StatusOK, gin.H{"Response": "Usuário não encontrado"})
+		}
+
+	})
+
+	//Path create parking ticket
+	//r.POST()
+
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

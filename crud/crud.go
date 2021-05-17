@@ -55,6 +55,12 @@ func GetUserByEmail(email string, db *gorm.DB) database.User {
 	return user
 }
 
+func GetUserByID(id uint, db *gorm.DB) database.User {
+	var user database.User
+	db.Where("id = ?", id).First(&user)
+	return user
+}
+
 func GetTrafficWardenByEmail(email string, db *gorm.DB) database.TrafficWarden {
 	var trafficWarden database.TrafficWarden
 
