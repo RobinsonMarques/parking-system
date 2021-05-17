@@ -51,7 +51,7 @@ func CreateBillet(billet database.Billet, db *gorm.DB) Result {
 func GetUserByEmail(email string, db *gorm.DB) database.User {
 	var user database.User
 
-	db.Where("Email = ?", email).First(&user)
+	db.Where("email = ?", email).First(&user)
 	return user
 }
 
@@ -115,8 +115,8 @@ func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTic
 	return tickets
 }
 
-func GetBalance(userDocument string, db *gorm.DB) float64 {
-	user := GetUserByDocument(userDocument, db)
+func GetBalance(email string, db *gorm.DB) float64 {
+	user := GetUserByEmail(email, db)
 	balance := user
 
 	return balance.Balance
@@ -165,9 +165,9 @@ func UpdateVehicleOwner(vehicleID, newOwnerID uint, db *gorm.DB) {
 	db.Table("vehicles").Where("id = ?", vehicleID).Update("user_id", newOwnerID)
 }
 
-func UpdateBalance(document string, extra float64, db *gorm.DB) {
-	balance := GetBalance(document, db)
-	db.Table("users").Where("document = ?", document).Update("balance", balance+extra)
+func UpdateBalance(email string, extra float64, db *gorm.DB) {
+	balance := GetBalance(email, db)
+	db.Table("users").Where("email = ?", email).Update("balance", balance+extra)
 }
 
 func UpdateEndTime(ticketID uint, db *gorm.DB) {
@@ -177,6 +177,14 @@ func UpdateEndTime(ticketID uint, db *gorm.DB) {
 
 func UpdateIsPaid(rechargeID uint, db *gorm.DB) {
 	db.Table("recharges").Where("id = ?", rechargeID).Update("is_paid", true)
+}
+
+func UpdateIsParked(vehicleID uint, value bool, db *gorm.DB) {
+	db.Table("vehicles").Where("id = ?", vehicleID).Update("is_parked", value)
+}
+
+func UpdateIsActive(vehicleID uint, value bool, db *gorm.DB) {
+	db.Table("vehicles").Where("id = ?", vehicleID).Update("is_active", value)
 }
 
 func UpdateBilletLink(billetID uint, link string, db *gorm.DB) {

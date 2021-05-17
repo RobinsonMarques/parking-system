@@ -8,6 +8,7 @@ import (
 	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -140,7 +141,49 @@ func main() {
 	})
 
 	//Path create parking ticket
-	//r.POST()
+	r.POST("/parkingtickets", func(c *gin.Context) {
+		var input input2.CreateParkingTicket
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.Login.Email, input.Login.Password, db)
+		resp2 := crud.GetVehicleById(input.VehicleID, db)
+		user := crud.GetUserByEmail(input.Login.Email, db)
+		if resp == "user" {
+			if resp2.LicensePlate != "" {
+				if !resp2.IsParked {
+					price := float64(input.ParkingTime) * 1.75
+					currentTime := time.Now()
+					endTime := currentTime.Add(time.Hour * time.Duration(input.ParkingTime))
+					if user.Balance > price {
+						ticket := database.ParkingTicket{
+							Location:    input.Location,
+							ParkingTime: input.ParkingTime,
+							StartTime:   currentTime.String(),
+							EndTime:     endTime.String(),
+							Price:       price,
+							VehicleID:   input.VehicleID,
+						}
+						crud.CreateParkingTicket(ticket, db)
+						crud.UpdateIsParked(input.VehicleID, true, db)
+						crud.UpdateBalance(input.Login.Email, -price, db)
+						c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
+					} else {
+						c.JSON(http.StatusOK, gin.H{"Response": "Saldo insuficiente"})
+					}
+				} else {
+					c.JSON(http.StatusOK, gin.H{"Response": "Veículo já estacionado"})
+				}
+			} else {
+				c.JSON(http.StatusOK, gin.H{"Response": "Veículo não encontrado"})
+			}
+		} else {
+			c.JSON(http.StatusOK, gin.H{"Response": "Usuário não encontrado"})
+		}
+
+	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

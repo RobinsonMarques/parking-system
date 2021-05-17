@@ -6,9 +6,9 @@ import "gorm.io/gorm"
 
 type Person struct {
 	gorm.Model
-	Name     string `gorm:"not null" json:"Name"`
-	Email    string `gorm:"unique;not null" json:"Email"`
-	Password string `gorm:"not null" json:"Password"`
+	Name     string `gorm:"not null" json:"Name" binding:"required"`
+	Email    string `gorm:"unique;not null" json:"Email" binding:"required"`
+	Password string `gorm:"not null" json:"Password" binding:"required"`
 }
 
 type User struct {

@@ -18,6 +18,13 @@ type CreateTrafficWarden struct {
 	LoginInput LoginInput `json:"Login" binding:"required"`
 }
 
+type CreateParkingTicket struct {
+	Login       LoginInput
+	Location    string `json:"Location"`
+	ParkingTime int    `json:"ParkingTime"`
+	VehicleID   uint   `json:"VehicleID"`
+}
+
 type CreateVehicle struct {
 	LicensePlate string `json:"LicensePlate" binding:"required"`
 	VehicleModel string `json:"VehicleModel" binding:"required"`
