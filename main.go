@@ -135,7 +135,7 @@ func main() {
 			crud.CreateVehicle(veiculo, db)
 			c.JSON(http.StatusOK, gin.H{"Response": "Veículo criado"})
 		} else {
-			c.JSON(http.StatusOK, gin.H{"Response": "Usuário não encontrado"})
+			c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não encontrado"})
 		}
 
 	})
@@ -171,16 +171,38 @@ func main() {
 						crud.UpdateBalance(input.Login.Email, -price, db)
 						c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
 					} else {
-						c.JSON(http.StatusOK, gin.H{"Response": "Saldo insuficiente"})
+						c.JSON(http.StatusBadRequest, gin.H{"Response": "Saldo insuficiente"})
 					}
 				} else {
-					c.JSON(http.StatusOK, gin.H{"Response": "Veículo já estacionado"})
+					c.JSON(http.StatusBadRequest, gin.H{"Response": "Veículo já estacionado"})
 				}
 			} else {
-				c.JSON(http.StatusOK, gin.H{"Response": "Veículo não encontrado"})
+				c.JSON(http.StatusBadRequest, gin.H{"Response": "Veículo não encontrado"})
 			}
 		} else {
-			c.JSON(http.StatusOK, gin.H{"Response": "Usuário não encontrado"})
+			c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não encontrado"})
+		}
+
+	})
+
+	//Path get vehicle by license plate
+
+	r.GET("/vehicles/:licensePlate", func(c *gin.Context) {
+		licensePlate := c.Param("licensePlate")
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "trafficWarden" {
+			vehicle := crud.GetVehicleByLicensePlate(licensePlate, db)
+			c.JSON(200, vehicle)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
 		}
 
 	})
