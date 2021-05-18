@@ -326,6 +326,30 @@ func main() {
 			trafficWarden := crud.GetTrafficWardenByEmail(input.LoginInput.Email, db)
 			trafficWarden.Person = input.Person
 			crud.UpdateTrafficWarden(trafficWarden, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito  alterado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+
+	})
+
+	r.PUT("/vehicle", func(c *gin.Context) {
+		var input input2.UpdateVehicle
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+
+		if resp == "user" {
+			vehicle := database.Vehicle{
+				LicensePlate: input.LicensePlate,
+				VehicleModel: input.VehicleModel,
+				VehicleType:  input.VehicleType,
+			}
+			crud.UpdateVehicle(vehicle, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Veículo alterado"})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
 		}
