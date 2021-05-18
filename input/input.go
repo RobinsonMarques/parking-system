@@ -4,8 +4,13 @@ import "github.com/RobinsonMarques/parking-system/database"
 
 type CreateUserInput struct {
 	Person   database.Person
-	Document string  `json:"Document" binding:"required"`
-	Balance  float64 `json:"Balance"`
+	Document string `json:"Document" binding:"required"`
+}
+
+type UpdateUserInput struct {
+	Person     database.Person
+	Document   string     `json:"Document"`
+	LoginInput LoginInput `json:"Login" binding:"required"`
 }
 
 type CreateAdminInput struct {
@@ -35,4 +40,10 @@ type CreateVehicle struct {
 type LoginInput struct {
 	Email    string `json:"Email" binding:"required"`
 	Password string `json:"Password" binding:"required"`
+}
+
+type CreateRecharge struct {
+	Value       float64    `json:"Value" binding:"required"`
+	PaymentType string     `json:"PaymentType" binding:"required"`
+	LoginInput  LoginInput `json:"Login" binding:"required"`
 }

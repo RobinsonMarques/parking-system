@@ -5,7 +5,6 @@ import "gorm.io/gorm"
 //Modelos das tabelas do BD
 
 type Person struct {
-	gorm.Model
 	Name     string `gorm:"not null" json:"Name" binding:"required"`
 	Email    string `gorm:"unique;not null" json:"Email" binding:"required"`
 	Password string `gorm:"not null" json:"Password" binding:"required"`

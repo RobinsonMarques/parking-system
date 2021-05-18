@@ -81,6 +81,18 @@ func GetAllVehicles(db *gorm.DB) []database.Vehicle {
 	return vehicle
 }
 
+func GetRechargeByUserId(userID uint, db *gorm.DB) []database.Recharge {
+	var recharges []database.Recharge
+	db.Where("user_id = ?", userID).Find(&recharges)
+	return recharges
+}
+
+func GetBilletByRechargeId(rechargeID uint, db *gorm.DB) database.Billet {
+	var billet database.Billet
+	db.Where("recharge_id = ?", rechargeID).Find(&billet)
+	return billet
+}
+
 func GetVehiclesByUserId(userID uint, db *gorm.DB) []database.Vehicle {
 	var vehicles []database.Vehicle
 	db.Where("user_id = ?", userID).Find(&vehicles)
@@ -138,10 +150,11 @@ func GetPassword(email string, userType string, db *gorm.DB) string {
 
 }
 
-func UpdateUser(id uint, name string, email string, document string, db *gorm.DB) {
-	db.Table("users").Where("id = ?", id).Update("name", name)
-	db.Table("users").Where("id = ?", id).Update("email", email)
-	db.Table("users").Where("id = ?", id).Update("document", document)
+func UpdateUser(user database.User, db *gorm.DB) {
+	db.Table("users").Where("id = ?", user.ID).Update("name", user.Person.Name)
+	db.Table("users").Where("id = ?", user.ID).Update("email", user.Person.Email)
+	db.Table("users").Where("id = ?", user.ID).Update("document", user.Document)
+	db.Table("users").Where("id = ?", user.ID).Update("password", user.Person.Password)
 
 }
 

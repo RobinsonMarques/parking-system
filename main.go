@@ -169,6 +169,7 @@ func main() {
 						crud.CreateParkingTicket(ticket, db)
 						crud.UpdateIsParked(input.VehicleID, true, db)
 						crud.UpdateBalance(input.Login.Email, -price, db)
+						crud.UpdateIsActive(input.VehicleID, true, db)
 						c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
 					} else {
 						c.JSON(http.StatusBadRequest, gin.H{"Response": "Saldo insuficiente"})
@@ -181,6 +182,38 @@ func main() {
 			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não encontrado"})
+		}
+
+	})
+
+	//Path create recharge
+	r.POST("/recharge", func(c *gin.Context) {
+		var input input2.CreateRecharge
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+		user := crud.GetUserByEmail(input.LoginInput.Email, db)
+		if resp == "user" {
+			date := time.Now()
+			recharge := database.Recharge{
+				Date:        date.String(),
+				Value:       input.Value,
+				IsPaid:      false,
+				PaymentType: input.PaymentType,
+				UserID:      user.ID,
+			}
+			crud.CreateRecharge(recharge, db)
+			user := crud.GetUserByEmail(input.LoginInput.Email, db)
+			rechargeReturn := crud.GetRechargeByUserId(user.ID, db)
+			len := len(rechargeReturn)
+			billet := database.Billet{
+				BilletLink: "link@link.com",
+				RechargeID: rechargeReturn[len-1].ID,
+			}
+			crud.CreateBillet(billet, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
 		}
 
 	})
@@ -200,6 +233,8 @@ func main() {
 
 		if resp == "trafficWarden" {
 			vehicle := crud.GetVehicleByLicensePlate(licensePlate, db)
+			ticket := crud.GetLastParkingTicketFromVehicle(vehicle.ID, db)
+			vehicle.ParkingTicket = ticket
 			c.JSON(200, vehicle)
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
@@ -207,5 +242,56 @@ func main() {
 
 	})
 
+	//Path get user by document
+
+	r.GET("users/:document", func(c *gin.Context) {
+		document := c.Param("document")
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "admin" {
+			user := crud.GetUserByDocument(document, db)
+			vehicles := crud.GetVehiclesByUserId(user.ID, db)
+			recharges := crud.GetRechargeByUserId(user.ID, db)
+
+			for i := range recharges {
+				billet := crud.GetBilletByRechargeId(recharges[i].ID, db)
+				recharges[i].Billet = billet
+			}
+			user.Vehicle = vehicles
+			user.Recharge = recharges
+			c.JSON(200, user)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Update user
+	r.PUT("/users", func(c *gin.Context) {
+		var input input2.UpdateUserInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+
+		if resp == "user" || resp == "admin" {
+			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+			user := crud.GetUserByEmail(input.LoginInput.Email, db)
+			user.Person = input.Person
+			user.Document = input.Document
+			user.Person.Password = input.Person.Password
+			crud.UpdateUser(user, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Usuário alterado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
