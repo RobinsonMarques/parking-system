@@ -49,7 +49,6 @@ func main() {
 		input.Person.Password = utils.CreateHashPassword(input.Person.Password)
 
 		//Cria o user
-
 		user := database.User{
 			Person:   input.Person,
 			Document: input.Document,
@@ -219,7 +218,6 @@ func main() {
 	})
 
 	//Path get vehicle by license plate
-
 	r.GET("/vehicles/:licensePlate", func(c *gin.Context) {
 		licensePlate := c.Param("licensePlate")
 
@@ -243,7 +241,6 @@ func main() {
 	})
 
 	//Path get user by document
-
 	r.GET("users/:document", func(c *gin.Context) {
 		document := c.Param("document")
 
@@ -286,12 +283,53 @@ func main() {
 			user := crud.GetUserByEmail(input.LoginInput.Email, db)
 			user.Person = input.Person
 			user.Document = input.Document
-			user.Person.Password = input.Person.Password
 			crud.UpdateUser(user, db)
 			c.JSON(http.StatusOK, gin.H{"Response": "Usuário alterado"})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
 		}
+	})
+
+	//Update admin
+	r.PUT("/admins", func(c *gin.Context) {
+		var input input2.UpdateAdminInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+
+		if resp == "admin" {
+			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+			admin := crud.GetAdminByEmail(input.LoginInput.Email, db)
+			admin.Person = input.Person
+			crud.UpdateAdmin(admin, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Admin alterado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+
+	})
+
+	//Update traffic warden
+	r.PUT("/trafficwarden", func(c *gin.Context) {
+		var input input2.UpdateTrafficWarden
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
+		if resp == "trafficWarden" || resp == "admin" {
+			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+			trafficWarden := crud.GetTrafficWardenByEmail(input.LoginInput.Email, db)
+			trafficWarden.Person = input.Person
+			crud.UpdateTrafficWarden(trafficWarden, db)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

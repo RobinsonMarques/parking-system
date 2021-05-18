@@ -13,6 +13,16 @@ type UpdateUserInput struct {
 	LoginInput LoginInput `json:"Login" binding:"required"`
 }
 
+type UpdateAdminInput struct {
+	Person     database.Person
+	LoginInput LoginInput `json:"Login" binding:"required"`
+}
+
+type UpdateTrafficWarden struct {
+	Person     database.Person
+	LoginInput LoginInput `json:"Login" binding:"required"`
+}
+
 type CreateAdminInput struct {
 	Person     database.Person
 	LoginInput LoginInput `json:"Login" binding:"required"`

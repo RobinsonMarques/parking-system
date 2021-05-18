@@ -158,14 +158,16 @@ func UpdateUser(user database.User, db *gorm.DB) {
 
 }
 
-func UpdateAdmin(id uint, name string, email string, db *gorm.DB) {
-	db.Table("admins").Where("id = ?", id).Update("name", name)
-	db.Table("admins").Where("id = ?", id).Update("email", email)
+func UpdateAdmin(admin database.Admin, db *gorm.DB) {
+	db.Table("admins").Where("id = ?", admin.ID).Update("name", admin.Person.Name)
+	db.Table("admins").Where("id = ?", admin.ID).Update("email", admin.Person.Email)
+	db.Table("admins").Where("id = ?", admin.ID).Update("password", admin.Person.Password)
 }
 
-func UpdateTrafficWarden(id uint, name string, email string, db *gorm.DB) {
-	db.Table("traffic_wardens").Where("id = ?", id).Update("name", name)
-	db.Table("traffic_wardens").Where("id = ?", id).Update("Email", email)
+func UpdateTrafficWarden(trafficWarden database.TrafficWarden, db *gorm.DB) {
+	db.Table("traffic_wardens").Where("id = ?", trafficWarden.ID).Update("name", trafficWarden.Person.Name)
+	db.Table("traffic_wardens").Where("id = ?", trafficWarden.ID).Update("email", trafficWarden.Person.Email)
+	db.Table("traffic_wardens").Where("id = ?", trafficWarden.ID).Update("password", trafficWarden.Person.Password)
 }
 
 func UpdateVehicle(id uint, licensePlate string, vehicleModel string, vehicleType string, db *gorm.DB) {
