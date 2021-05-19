@@ -127,6 +127,13 @@ func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTic
 	return tickets
 }
 
+func GetBilletsByRechargeID(rechargeID uint, db *gorm.DB) []database.Billet {
+	var biletts []database.Billet
+
+	db.Where("recharge_id = ?", rechargeID).Find(&biletts)
+	return biletts
+}
+
 func GetBalance(email string, db *gorm.DB) float64 {
 	user := GetUserByEmail(email, db)
 	balance := user
@@ -222,10 +229,15 @@ func DeleteAdminByID(adminID uint, db *gorm.DB) {
 
 func DeleteVehicleByID(vehicleID uint, db *gorm.DB) {
 	db.Table("vehicles").Where("id = ?", vehicleID).Delete(&database.Vehicle{})
+	DeleteParkingTicketByVehicleID(vehicleID, db)
 }
 
 func DeleteParkingTicketByID(parkingTicketID uint, db *gorm.DB) {
 	db.Table("parking_tickets").Where("id = ?", parkingTicketID).Delete(&database.ParkingTicket{})
+}
+
+func DeleteParkingTicketByVehicleID(vehicleId uint, db *gorm.DB) {
+	db.Table("parking_tickets").Where("vehicle_id = ?", vehicleId).Delete(&database.ParkingTicket{})
 }
 
 func DeleteRechargeByID(rechargeID uint, db *gorm.DB) {
@@ -246,5 +258,11 @@ func DeleteBilletByRechargeID(rechargeID uint, db *gorm.DB) {
 }
 
 func DeleteRechargeByUserID(userID uint, db *gorm.DB) {
+	recharges := GetRechargeByUserId(userID, db)
 	db.Table("recharges").Where("user_id = ?", userID).Delete(&database.Recharge{})
+
+	for i := range recharges {
+		DeleteBilletByRechargeID(recharges[i].ID, db)
+	}
+
 }

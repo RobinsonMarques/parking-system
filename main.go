@@ -419,5 +419,135 @@ func main() {
 		}
 	})
 
+	//Path delete traffic warden by id
+	r.DELETE("/trafficwarden/:trafficwardenID", func(c *gin.Context) {
+		wardenIDString := c.Param("trafficwardenID")
+		wardenIDInt, _ := strconv.Atoi(wardenIDString)
+		wardenID := uint(wardenIDInt)
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "admin" {
+			crud.DeleteTrafficWardenByID(wardenID, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Guarda de Trânsito deletado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Path delete admin by id
+	r.DELETE("/admins/:adminID", func(c *gin.Context) {
+		adminIDString := c.Param("adminID")
+		adminIDInt, _ := strconv.Atoi(adminIDString)
+		adminID := uint(adminIDInt)
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "admin" {
+			crud.DeleteAdminByID(adminID, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Admin deletado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Path delete parking ticket by id
+	r.DELETE("/parkingtickets/:ticketID", func(c *gin.Context) {
+		ticketIDString := c.Param("ticketID")
+		ticketIDInt, _ := strconv.Atoi(ticketIDString)
+		ticketID := uint(ticketIDInt)
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "admin" {
+			crud.DeleteParkingTicketByID(ticketID, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Ticket deletado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Path delete recharge by id
+	r.DELETE("/recharge/:rechargeID", func(c *gin.Context) {
+		rechargeIDString := c.Param("rechargeID")
+		rechargeIDInt, _ := strconv.Atoi(rechargeIDString)
+		rechargeID := uint(rechargeIDInt)
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "admin" {
+			crud.DeleteRechargeByID(rechargeID, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Path delete billet by id
+	r.DELETE("/billets/:billetID", func(c *gin.Context) {
+		billetIDString := c.Param("billetID")
+		billetIDInt, _ := strconv.Atoi(billetIDString)
+		billetID := uint(billetIDInt)
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "admin" {
+			crud.DeleteBilletByID(billetID, db)
+			c.JSON(http.StatusOK, gin.H{"Response": "Boleto deletado"})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
+	//Path delete vehicle by id
+	r.DELETE("/vehicles/:vehicleID", func(c *gin.Context) {
+		vehicleIDString := c.Param("vehicleID")
+		vehicleIDInt, _ := strconv.Atoi(vehicleIDString)
+		vehicleID := uint(vehicleIDInt)
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "user" || resp == "admin" {
+			vehicle := crud.GetVehicleById(vehicleID, db)
+			user := crud.GetUserByEmail(input.Email, db)
+			if resp == "user" && vehicle.UserID != user.ID {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Usuário logado não possui permissão"})
+			} else {
+				crud.DeleteVehicleByID(vehicleID, db)
+				c.JSON(http.StatusOK, gin.H{"Response": "Veículo deletado"})
+			}
+		}
+	})
+
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
