@@ -24,10 +24,11 @@ type UpdateTrafficWarden struct {
 }
 
 type UpdateVehicle struct {
-	LicensePlate string     `gorm:"unique;not null" json:"LicensePlate"`
-	VehicleModel string     `gorm:"not null" json:"VehicleModel"`
-	VehicleType  string     `gorm:"not null" json:"VehicleType"`
-	LoginInput   LoginInput `json:"Login" binding:"required"`
+	LicensePlate    string     `json:"LicensePlate" binding:"required"`
+	NewLicensePlate string     `json:"NewLicensePlate" binding:"required"`
+	VehicleModel    string     `json:"VehicleModel"`
+	VehicleType     string     `json:"VehicleType"`
+	LoginInput      LoginInput `json:"Login" binding:"required"`
 }
 
 type CreateAdminInput struct {
@@ -37,6 +38,11 @@ type CreateAdminInput struct {
 
 type CreateTrafficWarden struct {
 	Person     database.Person
+	LoginInput LoginInput `json:"Login" binding:"required"`
+}
+
+type UpdateVehicleOwner struct {
+	NewUserID  uint       `json:"NewUserID" binding:"required"`
 	LoginInput LoginInput `json:"Login" binding:"required"`
 }
 
