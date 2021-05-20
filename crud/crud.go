@@ -68,9 +68,21 @@ func GetTrafficWardenByEmail(email string, db *gorm.DB) database.TrafficWarden {
 	return trafficWarden
 }
 
+func GetTrafficWardenByID(id uint, db *gorm.DB) database.TrafficWarden {
+	var warden database.TrafficWarden
+	db.Where("id = ?", id).First(&warden)
+	return warden
+}
+
 func GetAdminByEmail(email string, db *gorm.DB) database.Admin {
 	var admin database.Admin
 	db.Where("Email = ?", email).First(&admin)
+	return admin
+}
+
+func GetAdminByID(id uint, db *gorm.DB) database.Admin {
+	var admin database.Admin
+	db.Where("id = ?", id).First(&admin)
 	return admin
 }
 

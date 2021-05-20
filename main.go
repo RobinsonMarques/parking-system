@@ -151,36 +151,40 @@ func main() {
 		resp2 := crud.GetVehicleById(input.VehicleID, db)
 		user := crud.GetUserByEmail(input.Login.Email, db)
 		if resp == "user" {
-			if resp2.LicensePlate != "" {
-				if !resp2.IsParked {
-					price := float64(input.ParkingTime) * 1.75
-					currentTime := time.Now()
-					endTime := currentTime.Add(time.Hour * time.Duration(input.ParkingTime))
-					if user.Balance > price {
-						ticket := database.ParkingTicket{
-							Location:    input.Location,
-							ParkingTime: input.ParkingTime,
-							StartTime:   currentTime.String(),
-							EndTime:     endTime.String(),
-							Price:       price,
-							VehicleID:   input.VehicleID,
+			if resp2.UserID == user.ID {
+				if resp2.LicensePlate != "" {
+					if !resp2.IsParked {
+						price := float64(input.ParkingTime) * 1.75
+						currentTime := time.Now()
+						endTime := currentTime.Add(time.Hour * time.Duration(input.ParkingTime))
+						if user.Balance > price {
+							ticket := database.ParkingTicket{
+								Location:    input.Location,
+								ParkingTime: input.ParkingTime,
+								StartTime:   currentTime.String(),
+								EndTime:     endTime.String(),
+								Price:       price,
+								VehicleID:   input.VehicleID,
+							}
+							crud.CreateParkingTicket(ticket, db)
+							crud.UpdateIsParked(input.VehicleID, true, db)
+							crud.UpdateBalance(input.Login.Email, -price, db)
+							crud.UpdateIsActive(input.VehicleID, true, db)
+							c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
+						} else {
+							c.JSON(http.StatusBadRequest, gin.H{"Response": "Saldo insuficiente"})
 						}
-						crud.CreateParkingTicket(ticket, db)
-						crud.UpdateIsParked(input.VehicleID, true, db)
-						crud.UpdateBalance(input.Login.Email, -price, db)
-						crud.UpdateIsActive(input.VehicleID, true, db)
-						c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
 					} else {
-						c.JSON(http.StatusBadRequest, gin.H{"Response": "Saldo insuficiente"})
+						c.JSON(http.StatusBadRequest, gin.H{"Response": "Veículo já estacionado"})
 					}
 				} else {
-					c.JSON(http.StatusBadRequest, gin.H{"Response": "Veículo já estacionado"})
+					c.JSON(http.StatusBadRequest, gin.H{"Response": "Veículo não encontrado"})
 				}
 			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"Response": "Veículo não encontrado"})
+				c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não possui o veículo"})
 			}
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não encontrado"})
+			c.JSON(http.StatusBadRequest, gin.H{"Response": resp})
 		}
 
 	})
@@ -270,7 +274,11 @@ func main() {
 	})
 
 	//Update user
-	r.PUT("/users", func(c *gin.Context) {
+	r.PUT("/users/:userID", func(c *gin.Context) {
+		userIDString := c.Param("userID")
+		userIDInt, _ := strconv.Atoi(userIDString)
+		userID := uint(userIDInt)
+
 		var input input2.UpdateUserInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -279,19 +287,27 @@ func main() {
 		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
 
 		if resp == "user" || resp == "admin" {
-			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
-			user := crud.GetUserByEmail(input.LoginInput.Email, db)
-			user.Person = input.Person
-			user.Document = input.Document
-			crud.UpdateUser(user, db)
-			c.JSON(http.StatusOK, gin.H{"Response": "Usuário alterado"})
+			user := crud.GetUserByID(userID, db)
+			if resp == "user" && user.Person.Email != input.LoginInput.Email {
+				c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não possui permissão"})
+			} else {
+				input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+				user.Person = input.Person
+				user.Document = input.Document
+				crud.UpdateUser(user, db)
+				c.JSON(http.StatusOK, gin.H{"Response": "Usuário alterado"})
+			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
 		}
 	})
 
 	//Update admin
-	r.PUT("/admins", func(c *gin.Context) {
+	r.PUT("/admins/:adminID", func(c *gin.Context) {
+		adminIDString := c.Param("adminID")
+		adminIDInt, _ := strconv.Atoi(adminIDString)
+		adminID := uint(adminIDInt)
+
 		var input input2.UpdateAdminInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -302,7 +318,7 @@ func main() {
 
 		if resp == "admin" {
 			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
-			admin := crud.GetAdminByEmail(input.LoginInput.Email, db)
+			admin := crud.GetAdminByID(adminID, db)
 			admin.Person = input.Person
 			crud.UpdateAdmin(admin, db)
 			c.JSON(http.StatusOK, gin.H{"Response": "Admin alterado"})
@@ -313,7 +329,11 @@ func main() {
 	})
 
 	//Update traffic warden
-	r.PUT("/trafficwarden", func(c *gin.Context) {
+	r.PUT("/trafficwarden/:wardenID", func(c *gin.Context) {
+		wardenIDString := c.Param("wardenID")
+		wardenIDInt, _ := strconv.Atoi(wardenIDString)
+		wardenID := uint(wardenIDInt)
+
 		var input input2.UpdateTrafficWarden
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -322,11 +342,17 @@ func main() {
 
 		resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, db)
 		if resp == "trafficWarden" || resp == "admin" {
-			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
-			trafficWarden := crud.GetTrafficWardenByEmail(input.LoginInput.Email, db)
-			trafficWarden.Person = input.Person
-			crud.UpdateTrafficWarden(trafficWarden, db)
-			c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito  alterado"})
+			trafficWarden := crud.GetTrafficWardenByID(wardenID, db)
+			if resp == "trafficWarden" && trafficWarden.Person.Email != input.LoginInput.Email {
+				c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não possui permissão"})
+			} else {
+
+				input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+
+				trafficWarden.Person = input.Person
+				crud.UpdateTrafficWarden(trafficWarden, db)
+				c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito alterado"})
+			}
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
 		}
