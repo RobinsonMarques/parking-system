@@ -14,6 +14,10 @@ import (
 
 func main() {
 	db := dependencies.CreateConnection()
+
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+
 	r := gin.Default()
 
 	//Path get all vehicles
