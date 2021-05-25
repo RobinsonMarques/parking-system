@@ -55,6 +55,12 @@ func GetUserByEmail(email string, db *gorm.DB) database.User {
 	return user
 }
 
+func GetUserUnpaidRechargesByID(userID uint, db *gorm.DB) []database.Recharge {
+	var recharges []database.Recharge
+	db.Where("is_paid = false").Find(&recharges)
+	return recharges
+}
+
 func GetUserByID(id uint, db *gorm.DB) database.User {
 	var user database.User
 	db.Where("id = ?", id).First(&user)
@@ -140,10 +146,10 @@ func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTic
 }
 
 func GetBilletsByRechargeID(rechargeID uint, db *gorm.DB) []database.Billet {
-	var biletts []database.Billet
+	var billetts []database.Billet
 
-	db.Where("recharge_id = ?", rechargeID).Find(&biletts)
-	return biletts
+	db.Where("recharge_id = ?", rechargeID).Find(&billetts)
+	return billetts
 }
 
 func GetBalance(email string, db *gorm.DB) float64 {

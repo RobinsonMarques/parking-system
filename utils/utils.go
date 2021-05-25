@@ -104,6 +104,39 @@ func AlterVehicleStatus(vehicle database.Vehicle, parkingTime int, db *gorm.DB) 
 	}
 }
 
+func GetBilletStatus(rechargeID, Bearer string) string {
+	url := "https://sandbox.boletobancario.com/api-integration/charges/" + rechargeID
+
+	req, _ := http.NewRequest("GET", url, nil)
+
+	req.Header.Add("X-Api-Version", "2")
+	req.Header.Add("Authorization", Bearer)
+	req.Header.Add("X-Resource-Token", "1AD89A918E8A9AD595BDD578188A496D6FC9A7743D79F9658CF4BC4C8E18FBCC")
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Println("Error", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Println("Error reading the response:", err)
+	}
+
+	billet := input.Payment{}
+	json.Unmarshal(body, &billet)
+
+	//fmt.Println("Response status:", resp.Status)
+	//fmt.Println("Response Headers:", resp.Header)
+	//fmt.Println("Response Body:", string(body))
+	return billet.Status
+}
+
 func CreateAccessToken(bearer, Token string) string {
 	endpoint := "https://sandbox.boletobancario.com/authorization-server/oauth/token"
 	data := url.Values{}

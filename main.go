@@ -309,6 +309,39 @@ func main() {
 
 	})
 
+	//Path get recharges status
+	r.GET("/recharges", func(c *gin.Context) {
+
+		var input input2.LoginInput
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		resp := utils.Login(input.Email, input.Password, db)
+
+		if resp == "user" {
+			user := crud.GetUserByEmail(input.Email, db)
+			unpaidRecharges := crud.GetUserUnpaidRechargesByID(user.ID, db)
+
+			for _, unpaidRecharge := range unpaidRecharges {
+				status := utils.GetBilletStatus(unpaidRecharge.RechargeHash, Bearer)
+
+				if status == "CANCELLED" || status == "MANUAL_RECONCILIATION" || status == "FAILED" {
+					crud.DeleteRechargeByID(unpaidRecharge.ID, db)
+				}
+
+				if status == "PAID" {
+					crud.UpdateBalance(user.Person.Email, float64(unpaidRecharge.Value), db)
+					crud.UpdateIsPaid(unpaidRecharge.ID, db)
+					c.JSON(200, "Saldo alterado com sucesso")
+				}
+			}
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		}
+	})
+
 	//Path get user by document
 	r.GET("users/:document", func(c *gin.Context) {
 		document := c.Param("document")
