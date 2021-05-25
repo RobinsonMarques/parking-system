@@ -52,12 +52,13 @@ type ParkingTicket struct {
 
 type Recharge struct {
 	gorm.Model
-	Date        string  `gorm:"not null" json:"Date"`
-	Value       float64 `gorm:"not null" json:"Value"`
-	IsPaid      bool    `gorm:"not null" json:"IsPaid"`
-	PaymentType string  `gorm:"not null" json:"PaymentType"`
-	UserID      uint    `gorm:"not null" json:"UserID"`
-	Billet      Billet  `json:"Billet"`
+	Date         string `gorm:"not null" json:"Date"`
+	Value        int64  `gorm:"not null" json:"Value"`
+	IsPaid       bool   `gorm:"not null" json:"IsPaid"`
+	PaymentType  string `gorm:"not null" json:"PaymentType"`
+	UserID       uint   `gorm:"not null" json:"UserID"`
+	RechargeHash string `gorm:"not null" json:"rechargeHash"`
+	Billet       Billet `json:"Billet"`
 }
 
 type Billet struct {

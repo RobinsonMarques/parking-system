@@ -1,23 +1,40 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	"github.com/RobinsonMarques/parking-system/dependencies"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 )
 
+var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjA0NzE5OCwianRpIjoiakpnUVlRdlVQLVNuUlhqWE5GMHpPeXVNTUI4IiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.VeYRDvLvOdKBf9aTzF_cvuHPxySZv48PM3s3UWKFKr4eWxA2VqQYN7rRmgw3OzW8rs2m1pwBAW4BN6EPHAvDN2HfFNvcS2ch0SMw3D0l--fZIt399tUns2aoPWxpmGOfg1io63PCbz97WmNEHn0mnlkQXrz2zkPiFuGrPowbUUXBMWjQWm189dPDcc5V7cAL43xsws2qjIpyjM4EmXNWSY5iOPBQbvsdrTc6AQ6ozFlqj3rowvjxnM1YmTfQVlezVvRxKkBWjfmnuG9NRMCFqHualzXyjZVF3yk42ufjSP0v9e011n-P92X1tYN97Up_WZ_ukO0dorqI6sJYcXRMKw"
+var Bearer = "Bearer" + Token
+
 func main() {
 	db := dependencies.CreateConnection()
+	db.AutoMigrate(&database.Person{})
+	db.AutoMigrate(&database.User{})
+	db.AutoMigrate(&database.TrafficWarden{})
+	db.AutoMigrate(&database.Admin{})
+	db.AutoMigrate(&database.ParkingTicket{})
+	db.AutoMigrate(&database.Vehicle{})
+	db.AutoMigrate(&database.Billet{})
+	db.AutoMigrate(&database.Recharge{})
 
+	Token = utils.CreateAccessToken(Bearer, Token)
+	Bearer = "Bearer" + Token
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
-
 	r := gin.Default()
 
 	//Path get all vehicles
@@ -174,6 +191,7 @@ func main() {
 							crud.UpdateIsParked(input.VehicleID, true, db)
 							crud.UpdateBalance(input.Login.Email, -price, db)
 							crud.UpdateIsActive(input.VehicleID, true, db)
+							go utils.AlterVehicleStatus(resp2, input.ParkingTime, db)
 							c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
 						} else {
 							c.JSON(http.StatusBadRequest, gin.H{"Response": "Saldo insuficiente"})
@@ -195,6 +213,7 @@ func main() {
 
 	//Path create recharge
 	r.POST("/recharge", func(c *gin.Context) {
+		url := "https://sandbox.boletobancario.com/api-integration/charges"
 		var input input2.CreateRecharge
 		if err := c.ShouldBindJSON(&input); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -204,23 +223,64 @@ func main() {
 		user := crud.GetUserByEmail(input.LoginInput.Email, db)
 		if resp == "user" {
 			date := time.Now()
-			recharge := database.Recharge{
-				Date:        date.String(),
-				Value:       input.Value,
-				IsPaid:      false,
-				PaymentType: input.PaymentType,
-				UserID:      user.ID,
+			var chargeString string = fmt.Sprintf(`{
+"charge": {
+            "description": "Recarga de crédito",
+            "amount": %d,
+            "paymentTypes": ["BOLETO"]
+        },
+        "billing": {
+            "name": "%s",
+            "document": "%s",
+            "email": "%s",
+            "notify": true
+        }
+}`, input.Value, user.Person.Name, user.Document, user.Person.Email)
+			var jsonRequest = []byte(chargeString)
+			//jsonRecharge, _ := json.Marshal(jsonStr)
+
+			req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonRequest))
+			req.Header.Add("X-Api-Version", "2")
+			req.Header.Add("Authorization", Bearer)
+			req.Header.Add("X-Resource-Token", "1AD89A918E8A9AD595BDD578188A496D6FC9A7743D79F9658CF4BC4C8E18FBCC")
+			req.Header.Add("Content-Type", "application/json")
+
+			client := &http.Client{}
+
+			res, err := client.Do(req)
+
+			if err != nil {
+				log.Println("Error", err)
 			}
-			crud.CreateRecharge(recharge, db)
-			user := crud.GetUserByEmail(input.LoginInput.Email, db)
+			defer res.Body.Close()
+			body, err := ioutil.ReadAll(res.Body)
+
+			if err != nil {
+				log.Println("Error reading the response:", err)
+			}
+
+			response := input2.Response{}
+			json.Unmarshal(body, &response)
+
+			finalRecharge := database.Recharge{
+				Date:         date.String(),
+				Value:        input.Value,
+				IsPaid:       false,
+				PaymentType:  input.PaymentType,
+				UserID:       user.ID,
+				RechargeHash: response.Embedded.Charges[0].ID,
+			}
+
+			crud.CreateRecharge(finalRecharge, db)
 			rechargeReturn := crud.GetRechargeByUserId(user.ID, db)
 			len := len(rechargeReturn)
 			billet := database.Billet{
-				BilletLink: "link@link.com",
+				BilletLink: response.Embedded.Charges[0].Link,
 				RechargeID: rechargeReturn[len-1].ID,
 			}
 			crud.CreateBillet(billet, db)
 			c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
+			//log.Println("Recharge Hash:", response.Embedded.Charges.ID)
 		}
 
 	})
@@ -239,6 +299,7 @@ func main() {
 
 		if resp == "trafficWarden" {
 			vehicle := crud.GetVehicleByLicensePlate(licensePlate, db)
+			vehicle = crud.GetVehicleByLicensePlate(licensePlate, db)
 			ticket := crud.GetLastParkingTicketFromVehicle(vehicle.ID, db)
 			vehicle.ParkingTicket = ticket
 			c.JSON(200, vehicle)
