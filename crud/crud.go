@@ -9,7 +9,7 @@ import (
 )
 
 type Result struct {
-	Data interface{}
+	Data *gorm.DB
 }
 
 func CreateUser(user database.User, db *gorm.DB) Result {
@@ -61,10 +61,10 @@ func GetUserUnpaidRechargesByID(userID uint, db *gorm.DB) []database.Recharge {
 	return recharges
 }
 
-func GetUserByID(id uint, db *gorm.DB) database.User {
+func GetUserByID(id uint, db *gorm.DB) (database.User, error) {
 	var user database.User
-	db.Where("id = ?", id).First(&user)
-	return user
+	err := db.Where("id = ?", id).First(&user).Error
+	return user, err
 }
 
 func GetTrafficWardenByEmail(email string, db *gorm.DB) database.TrafficWarden {
@@ -74,10 +74,10 @@ func GetTrafficWardenByEmail(email string, db *gorm.DB) database.TrafficWarden {
 	return trafficWarden
 }
 
-func GetTrafficWardenByID(id uint, db *gorm.DB) database.TrafficWarden {
+func GetTrafficWardenByID(id uint, db *gorm.DB) (database.TrafficWarden, error) {
 	var warden database.TrafficWarden
-	db.Where("id = ?", id).First(&warden)
-	return warden
+	err := db.Where("id = ?", id).First(&warden).Error
+	return warden, err
 }
 
 func GetAdminByEmail(email string, db *gorm.DB) database.Admin {
@@ -86,10 +86,10 @@ func GetAdminByEmail(email string, db *gorm.DB) database.Admin {
 	return admin
 }
 
-func GetAdminByID(id uint, db *gorm.DB) database.Admin {
+func GetAdminByID(id uint, db *gorm.DB) (database.Admin, error) {
 	var admin database.Admin
-	db.Where("id = ?", id).First(&admin)
-	return admin
+	err := db.Where("id = ?", id).First(&admin).Error
+	return admin, err
 }
 
 func GetAllVehicles(db *gorm.DB) []database.Vehicle {
@@ -99,36 +99,36 @@ func GetAllVehicles(db *gorm.DB) []database.Vehicle {
 	return vehicle
 }
 
-func GetRechargeByUserId(userID uint, db *gorm.DB) []database.Recharge {
+func GetRechargeByUserId(userID uint, db *gorm.DB) ([]database.Recharge, error) {
 	var recharges []database.Recharge
-	db.Where("user_id = ?", userID).Find(&recharges)
-	return recharges
+	err := db.Where("user_id = ?", userID).Find(&recharges).Error
+	return recharges, err
 }
 
-func GetBilletByRechargeId(rechargeID uint, db *gorm.DB) database.Billet {
+func GetBilletByRechargeId(rechargeID uint, db *gorm.DB) (database.Billet, error) {
 	var billet database.Billet
-	db.Where("recharge_id = ?", rechargeID).Find(&billet)
-	return billet
+	err := db.Where("recharge_id = ?", rechargeID).Find(&billet).Error
+	return billet, err
 }
 
-func GetVehiclesByUserId(userID uint, db *gorm.DB) []database.Vehicle {
+func GetVehiclesByUserId(userID uint, db *gorm.DB) ([]database.Vehicle, error) {
 	var vehicles []database.Vehicle
-	db.Where("user_id = ?", userID).Find(&vehicles)
-	return vehicles
+	err := db.Where("user_id = ?", userID).Find(&vehicles).Error
+	return vehicles, err
 }
 
-func GetUserByDocument(document string, db *gorm.DB) database.User {
+func GetUserByDocument(document string, db *gorm.DB) (database.User, error) {
 	var user database.User
 
-	db.Where("Document = ?", document).First(&user)
-	return user
+	err := db.Where("Document = ?", document).First(&user).Error
+	return user, err
 }
 
-func GetVehicleByLicensePlate(licensePlate string, db *gorm.DB) database.Vehicle {
+func GetVehicleByLicensePlate(licensePlate string, db *gorm.DB) (database.Vehicle, error) {
 	var vehicle database.Vehicle
 
-	db.Where("license_plate = ?", licensePlate).First(&vehicle)
-	return vehicle
+	err := db.Where("license_plate = ?", licensePlate).First(&vehicle).Error
+	return vehicle, err
 }
 
 func GetVehicleById(id uint, db *gorm.DB) database.Vehicle {
@@ -138,11 +138,11 @@ func GetVehicleById(id uint, db *gorm.DB) database.Vehicle {
 	return vehicle
 }
 
-func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) []database.ParkingTicket {
+func GetLastParkingTicketFromVehicle(id uint, db *gorm.DB) ([]database.ParkingTicket, error) {
 	var tickets []database.ParkingTicket
 
-	db.Where("vehicle_id = ?", id).Last(&tickets)
-	return tickets
+	err := db.Where("vehicle_id = ?", id).Last(&tickets).Error
+	return tickets, err
 }
 
 func GetBilletsByRechargeID(rechargeID uint, db *gorm.DB) []database.Billet {
@@ -237,12 +237,14 @@ func DeleteUserByID(userID uint, db *gorm.DB) {
 	DeleteRechargeByUserID(userID, db)
 }
 
-func DeleteTrafficWardenByID(trafficWardenID uint, db *gorm.DB) {
-	db.Table("traffic_wardens").Where("id = ?", trafficWardenID).Delete(&database.TrafficWarden{})
+func DeleteTrafficWardenByID(trafficWardenID uint, db *gorm.DB) error{
+	err := db.Table("traffic_wardens").Where("id = ?", trafficWardenID).Delete(&database.TrafficWarden{}).Error
+	return  err
 }
 
-func DeleteAdminByID(adminID uint, db *gorm.DB) {
-	db.Table("admins").Where("id = ?", adminID).Delete(&database.Admin{})
+func DeleteAdminByID(adminID uint, db *gorm.DB) error{
+	err := db.Table("admins").Where("id = ?", adminID).Delete(&database.Admin{}).Error
+	return err
 }
 
 func DeleteVehicleByID(vehicleID uint, db *gorm.DB) {
@@ -263,8 +265,9 @@ func DeleteRechargeByID(rechargeID uint, db *gorm.DB) {
 	DeleteBilletByRechargeID(rechargeID, db)
 }
 
-func DeleteBilletByID(billetID uint, db *gorm.DB) {
-	db.Table("billets").Where("id = ?", billetID).Delete(&database.Billet{})
+func DeleteBilletByID(billetID uint, db *gorm.DB) error{
+	err := db.Table("billets").Where("id = ?", billetID).Delete(&database.Billet{}).Error
+	return err
 }
 
 func DeleteVehiclesByUserID(userID uint, db *gorm.DB) {
@@ -276,7 +279,7 @@ func DeleteBilletByRechargeID(rechargeID uint, db *gorm.DB) {
 }
 
 func DeleteRechargeByUserID(userID uint, db *gorm.DB) {
-	recharges := GetRechargeByUserId(userID, db)
+	recharges, _ := GetRechargeByUserId(userID, db)
 	db.Table("recharges").Where("user_id = ?", userID).Delete(&database.Recharge{})
 
 	for i := range recharges {

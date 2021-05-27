@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	"github.com/RobinsonMarques/parking-system/input"
@@ -168,9 +167,9 @@ func CreateAccessToken(bearer, Token string) string {
 		token := input.AccessToken{}
 		json.Unmarshal(body, &token)
 
-		fmt.Println("Response status:", resp.Status)
-		fmt.Println("Response Headers:", resp.Header)
-		fmt.Println("Response Body:", string(body))
+		//fmt.Println("Response status:", resp.Status)
+		//fmt.Println("Response Headers:", resp.Header)
+		//fmt.Println("Response Body:", string(body))
 
 		return token.AccessToken
 	}
@@ -203,9 +202,9 @@ func validateToken(bearer string) bool {
 	token := input.ValidateAccessToken{}
 	json.Unmarshal(body, &token)
 
-	fmt.Println("Response status:", resp.Status)
-	fmt.Println("Response Headers:", resp.Header)
-	fmt.Println("Response Body:", string(body))
+	//fmt.Println("Response status:", resp.Status)
+	//fmt.Println("Response Headers:", resp.Header)
+	//fmt.Println("Response Body:", string(body))
 
 	if resp.Status != "200 OK" {
 		return false
