@@ -30,7 +30,7 @@ func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito criado"})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -50,7 +50,7 @@ func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito alterado"})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -70,6 +70,6 @@ func (a TrafficWardenManager) DeleteTrafficWardenByID(c *gin.Context) {
 	if err == nil {
 		c.JSON(http.StatusOK, "Guarda deletado com sucesso!")
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }

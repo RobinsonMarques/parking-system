@@ -5,13 +5,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewApplication(db *gorm.DB) Application {
+func NewApplication(db *gorm.DB) (Application, error) {
 	UserManager := NewUserController(db)
 	AdminManager := NewAdminController(db)
 	TrafficWardenManager := NewTrafficWardenManager(db)
 	VehicleManager := NewVehicleManager(db)
 	ParkingTicketManager := NewParkingTicketManager(db)
-	RechargeManager := NewRechargeManager(db)
+	RechargeManager, err := NewRechargeManager(db)
+	if err != nil {
+		return Application{}, err
+	}
 	BilletManager := NewBilletManager(db)
 	return Application{
 		UserManager:          UserManager,
@@ -21,7 +24,7 @@ func NewApplication(db *gorm.DB) Application {
 		ParkingTicketManager: ParkingTicketManager,
 		RechargeManager:      RechargeManager,
 		BilletManager:        BilletManager,
-	}
+	}, nil
 }
 
 type Application struct {

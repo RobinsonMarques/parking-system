@@ -1,11 +1,8 @@
 package application
 
 import (
-	"github.com/RobinsonMarques/parking-system/crud"
-	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
-	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
@@ -32,7 +29,7 @@ func (a VehicleManager) GetAllVehicles(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, vehicles)
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 
 }
@@ -43,22 +40,12 @@ func (a VehicleManager) CreateVehicle(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if crud.GetUserByID(input.UserID, a.db).Person.Name != "" {
-		//Cria o veículo
-		veiculo := database.Vehicle{
-			LicensePlate:  input.LicensePlate,
-			VehicleModel:  input.VehicleModel,
-			VehicleType:   input.VehicleType,
-			IsActive:      false,
-			IsParked:      false,
-			UserID:        input.UserID,
-			ParkingTicket: nil,
-		}
-		crud.CreateVehicle(veiculo, a.db)
+	vehicleService := services.NewVehicleService(a.db)
+	err := vehicleService.CreateVehicle(input)
+	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Veículo criado"})
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"Response": "Usuário não encontrado"})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -75,7 +62,7 @@ func (a VehicleManager) GetVehicleByLicensePlate(c *gin.Context) {
 	if err == nil {
 		c.JSON(200, vehicle)
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -85,30 +72,12 @@ func (a VehicleManager) UpdateVehicle(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-	user := crud.GetUserByEmail(input.LoginInput.Email, a.db)
-	vehicles := crud.GetVehiclesByUserId(user.ID, a.db)
-	var resp2 bool
-	for i := range vehicles {
-		if vehicles[i].UserID == user.ID {
-			resp2 = true
-		}
-	}
-
-	if resp == "user" {
-		if resp2 {
-			vehicle := crud.GetVehicleByLicensePlate(input.LicensePlate, a.db)
-			vehicle.VehicleModel = input.VehicleModel
-			vehicle.VehicleType = input.VehicleType
-			vehicle.LicensePlate = input.NewLicensePlate
-			crud.UpdateVehicle(vehicle, a.db)
-			c.JSON(http.StatusOK, gin.H{"Response": "Veículo alterado"})
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuário não possui este veículo"})
-		}
+	vehicleService := services.NewVehicleService(a.db)
+	err := vehicleService.UpdateVehicle(input)
+	if err == nil {
+		c.JSON(http.StatusOK, "Usuário alterado com sucesso")
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -121,18 +90,12 @@ func (a VehicleManager) UpdateVehicleOwner(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-	user := crud.GetUserByID(input.NewUserID, a.db)
-	if resp == "admin" {
-		if user.Person.Name != "" {
-			crud.UpdateVehicleOwner(vehicleID, input.NewUserID, a.db)
-			c.JSON(http.StatusOK, gin.H{"Response": "Dono do veículo alterado"})
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuário inexistente"})
-		}
+	vehicleService := services.NewVehicleService(a.db)
+	err := vehicleService.UpdateVehicleOwner(input, vehicleID)
+	if err == nil {
+		c.JSON(http.StatusOK, "Dono do veículo alterado com sucesso")
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -146,16 +109,11 @@ func (a VehicleManager) DeleteVehicleByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp := utils.Login(input.Email, input.Password, a.db)
-
-	if resp == "user" || resp == "admin" {
-		vehicle := crud.GetVehicleById(vehicleID, a.db)
-		user := crud.GetUserByEmail(input.Email, a.db)
-		if resp == "user" && vehicle.UserID != user.ID {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuário logado não possui permissão"})
-		} else {
-			crud.DeleteVehicleByID(vehicleID, a.db)
-			c.JSON(http.StatusOK, gin.H{"Response": "Veículo deletado"})
-		}
+	vehicleService := services.NewVehicleService(a.db)
+	err := vehicleService.DeleteVehicleByID(input, vehicleID)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"Response": "Veículo deletado"})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }

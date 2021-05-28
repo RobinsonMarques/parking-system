@@ -33,6 +33,6 @@ func (a BilletManager) DeleteBilletByID(c *gin.Context) {
 	if err == nil {
 		c.JSON(http.StatusOK, "Boleto deletado com sucesso!")
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }

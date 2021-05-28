@@ -27,14 +27,12 @@ func (a AdminController) CreateAdmin(c *gin.Context) {
 	adminService := services.NewAdminService(a.db)
 	err := adminService.CreateAdmin(input)
 
-	if err == nil{
+	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Admin criado"})
-	}else{
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
-
-
 
 func (a AdminController) UpdateAdmin(c *gin.Context) {
 	adminIDString := c.Param("adminID")
@@ -50,8 +48,8 @@ func (a AdminController) UpdateAdmin(c *gin.Context) {
 	err := adminService.UpdateAdmin(input, adminID)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Admin alterado"})
-	}else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -69,9 +67,7 @@ func (a AdminController) DeleteAdminByID(c *gin.Context) {
 	err := adminService.DeleteAdminByID(input, adminID)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Admin deletado"})
-	}else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
-
-

@@ -12,6 +12,7 @@ import (
 func NewUserController(db *gorm.DB) UserController {
 	return UserController{db: db}
 }
+
 type UserController struct {
 	db *gorm.DB
 }
@@ -27,11 +28,10 @@ func (a UserController) CreateUser(c *gin.Context) {
 	err := userService.CreateUser(input)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Usuário criado"})
-	}else{
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
-
 
 func (a UserController) GetUserByDocument(c *gin.Context) {
 	document := c.Param("document")
@@ -45,8 +45,8 @@ func (a UserController) GetUserByDocument(c *gin.Context) {
 	user, err := userService.GetUserByDocument(input, document)
 	if err == nil {
 		c.JSON(200, user)
-	}else{
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -64,8 +64,8 @@ func (a UserController) UpdateUser(c *gin.Context) {
 	err := UserService.UpdateUser(input, userID)
 	if err == nil {
 		c.JSON(http.StatusOK, "Usuário alterado com sucesso!")
-	} else{
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -81,11 +81,9 @@ func (a UserController) DeleteUserByID(c *gin.Context) {
 	}
 	userService := services.NewUserService(a.db)
 	err := userService.DeleteUserByID(input, userID)
-	if err == nil{
+	if err == nil {
 		c.JSON(http.StatusOK, "Usuário deletado com sucesso!")
-	}else{
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
-
-

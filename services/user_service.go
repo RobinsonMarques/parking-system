@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewUserService (db *gorm.DB) UserService{
+func NewUserService(db *gorm.DB) UserService {
 	return UserService{db: db}
 }
 
@@ -17,7 +17,7 @@ type UserService struct {
 	db *gorm.DB
 }
 
-func (u UserService) CreateUser(input input2.CreateUserInput) error{
+func (u UserService) CreateUser(input input2.CreateUserInput) error {
 	input.Person.Password = utils.CreateHashPassword(input.Person.Password)
 	//Cria o user
 	user := database.User{
@@ -34,12 +34,12 @@ func (u UserService) CreateUser(input input2.CreateUserInput) error{
 	return nil
 }
 
-func (u UserService) GetUserByDocument(input input2.LoginInput, document string) (database.User, error){
+func (u UserService) GetUserByDocument(input input2.LoginInput, document string) (database.User, error) {
 	resp := utils.Login(input.Email, input.Password, u.db)
 
 	if resp == "admin" {
 		user, err := crud.GetUserByDocument(document, u.db)
-		if err != nil{
+		if err != nil {
 			return user, err
 		}
 		vehicles, _ := crud.GetVehiclesByUserId(user.ID, u.db)
@@ -58,12 +58,12 @@ func (u UserService) GetUserByDocument(input input2.LoginInput, document string)
 	return user, err
 }
 
-func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error{
+func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, u.db)
 
 	if resp == "user" || resp == "admin" {
 		user, err := crud.GetUserByID(userID, u.db)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 		if resp == "user" && user.Person.Email != input.LoginInput.Email {
@@ -82,11 +82,14 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error
 	}
 }
 
-func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error{
+func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error {
 	resp := utils.Login(input.Email, input.Password, u.db)
 
 	if resp == "user" || resp == "admin" {
-		user := crud.GetUserByEmail(input.Email, u.db)
+		user, err := crud.GetUserByEmail(input.Email, u.db)
+		if err != nil {
+			return err
+		}
 		if resp == "user" && user.ID != userID {
 			err := errors.New("usuário não possui permissão")
 			return err

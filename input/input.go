@@ -114,7 +114,7 @@ type ValidateAccessToken struct {
 	} `json:"details"`
 	Error     string `json:"error"`
 	Path      string `json:"path"`
-	Status    int64  `json:"status"`
+	Status    string `json:"status"`
 	Timestamp string `json:"timestamp"`
 }
 

@@ -1,33 +1,32 @@
 package application
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"github.com/RobinsonMarques/parking-system/crud"
-	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
+	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
-	"time"
 )
 
-func CreateBearer() string {
-	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjIwNTQ0NywianRpIjoiWVpPbXVNbW96b2RaZTFxNXV2TjRqbnZ3c1kwIiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.ivjMTl_msqTIvt5gihELyaGOMpY5ogCV4AMQM7C5jEbj6Cqy1k4Ej2V5sGScparAAyKCsMVp3RvHea96ZLtobj2_ojrGyc7FlcsoBGlsRsA7n6o36nJwvu8iu8sLJAWz9Zn_RupkQm1I6ffTJaQXNNygx4B4mngxftmvcQBsZLhDlDMGeuH7XzUwo0WS578P89hmpJaMbpvVb0pyvR-QVwZPB5378s3Qam3BpK0sF5ReFSYhjlRtqx3sTGkMM5E3HNsvD_MSnn6ZkZMDTwJ1o8mmh4CbWCdG8FfMBKUjj20yG2P69NdE7L1PrJaAvJ2x7VPYCQ3aNcFyGddyi0n5Fw"
+func CreateBearer() (string, error) {
+	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjMwNzcwMSwianRpIjoicWVfdkZsVHV4cWhKWS0yUThiOVNsUUFBU1c4IiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.fvgQx7DyCebX6VyjGEd-fC3SS25gFBUCeZDoFZJUcLmtHSuMDz3FA-gL2OXCcDzAR9VQWeMpDZbIiTN6CQD6WvoNdJr1tuESCm1_wfD3q0Xjrni4jtEOgmCUIj4CKzaS-0Y2flF80D1SgID2DWm5OrtkXHnmeiDcvI7fxu_glpIjqcZlaHr-N-t7aEAslljKCOjRcp_0MWcA2CgTp9PbxIGcjRn3QCzLkKwSHy9IoiAR6j7aTp4gc9lt3UUE_HerVjDM0u1aMfVzLY4Ms3UGqpg38tQJ52HL64EnJvW5hkQlV0TDQi8eM6L6-a8oRBT3VCdwpUl0Dvjled1C1tckcQ"
 	var Bearer = "Bearer" + Token
-	Token = utils.CreateAccessToken(Bearer, Token)
+	Token, err := utils.CreateAccessToken(Bearer, Token)
+	if err != nil {
+		return "", err
+	}
 	Bearer = "Bearer" + Token
-	return Bearer
+	return Bearer, nil
 }
 
-func NewRechargeManager(db *gorm.DB) RechargeManager {
-	Bearer := CreateBearer()
-	return RechargeManager{db: db, Bearer: Bearer}
+func NewRechargeManager(db *gorm.DB) (RechargeManager, error) {
+	Bearer, err := CreateBearer()
+	if err != nil {
+		return RechargeManager{}, err
+	}
+	return RechargeManager{db: db, Bearer: Bearer}, nil
 }
 
 type RechargeManager struct {
@@ -42,68 +41,15 @@ func (a RechargeManager) CreateRecharge(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-	user := crud.GetUserByEmail(input.LoginInput.Email, a.db)
-	if resp == "user" {
-		date := time.Now()
-		var chargeString string = fmt.Sprintf(`{
-"charge": {
-            "description": "Recarga de crédito",
-            "amount": %d,
-            "paymentTypes": ["BOLETO"]
-        },
-        "billing": {
-            "name": "%s",
-            "document": "%s",
-            "email": "%s",
-            "notify": true
-        }
-}`, input.Value, user.Person.Name, user.Document, user.Person.Email)
-		var jsonRequest = []byte(chargeString)
-		//jsonRecharge, _ := json.Marshal(jsonStr)
-
-		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonRequest))
-		req.Header.Add("X-Api-Version", "2")
-		req.Header.Add("Authorization", a.Bearer)
-		req.Header.Add("X-Resource-Token", "1AD89A918E8A9AD595BDD578188A496D6FC9A7743D79F9658CF4BC4C8E18FBCC")
-		req.Header.Add("Content-Type", "application/json")
-
-		client := &http.Client{}
-
-		res, err := client.Do(req)
-
-		if err != nil {
-			log.Println("Error", err)
-		}
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-
-		if err != nil {
-			log.Println("Error reading the response:", err)
-		}
-
-		response := input2.Response{}
-		json.Unmarshal(body, &response)
-
-		finalRecharge := database.Recharge{
-			Date:         date.String(),
-			Value:        input.Value,
-			IsPaid:       false,
-			PaymentType:  input.PaymentType,
-			UserID:       user.ID,
-			RechargeHash: response.Embedded.Charges[0].ID,
-		}
-
-		crud.CreateRecharge(finalRecharge, a.db)
-		rechargeReturn := crud.GetRechargeByUserId(user.ID, a.db)
-		len := len(rechargeReturn)
-		billet := database.Billet{
-			BilletLink: response.Embedded.Charges[0].Link,
-			RechargeID: rechargeReturn[len-1].ID,
-		}
-		crud.CreateBillet(billet, a.db)
+	rechargeService, err := services.NewRechargeService(a.db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+	}
+	err = rechargeService.CreateRecharge(input, url)
+	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
-		//log.Println("Recharge Hash:", response.Embedded.Charges.ID)
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
 
@@ -113,29 +59,17 @@ func (a RechargeManager) GetRechargesStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	resp := utils.Login(input.Email, input.Password, a.db)
-
-	if resp == "user" {
-		user := crud.GetUserByEmail(input.Email, a.db)
-		unpaidRecharges := crud.GetUserUnpaidRechargesByID(user.ID, a.db)
-
-		for _, unpaidRecharge := range unpaidRecharges {
-			status := utils.GetBilletStatus(unpaidRecharge.RechargeHash, a.Bearer)
-
-			if status == "CANCELLED" || status == "MANUAL_RECONCILIATION" || status == "FAILED" {
-				crud.DeleteRechargeByID(unpaidRecharge.ID, a.db)
-			}
-
-			if status == "PAID" {
-				crud.UpdateBalance(user.Person.Email, float64(unpaidRecharge.Value), a.db)
-				crud.UpdateIsPaid(unpaidRecharge.ID, a.db)
-				c.JSON(200, "Saldo alterado com sucesso")
-			}
-		}
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+	rechargeService, err := services.NewRechargeService(a.db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
+	err = rechargeService.GetRechargeStatus(input)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"Response": "Saldo alterado"})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+	}
+
 }
 
 func (a RechargeManager) DeleteRechargeByID(c *gin.Context) {
@@ -148,12 +82,15 @@ func (a RechargeManager) DeleteRechargeByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	resp := utils.Login(input.Email, input.Password, a.db)
 
-	if resp == "admin" {
-		crud.DeleteRechargeByID(rechargeID, a.db)
+	rechargeService, err := services.NewRechargeService(a.db)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+	}
+	err = rechargeService.DeleteRechargeByID(input, rechargeID)
+	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": resp})
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }

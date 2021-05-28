@@ -31,17 +31,29 @@ func ComparePassword(password string, userEmail string, userType string, db *gor
 	var err error
 
 	if userType == "user" {
-		hashedPassword := []byte(crud.GetPassword(userEmail, userType, db))
+		userPassword, err := crud.GetPassword(userEmail, userType, db)
+		if err != nil {
+			return err
+		}
+		hashedPassword := []byte(userPassword)
 		bytePassword := []byte(password)
 		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
 		return err
 	} else if userType == "admin" {
-		hashedPassword := []byte(crud.GetPassword(userEmail, userType, db))
+		adminPassword, err := crud.GetPassword(userEmail, userType, db)
+		if err != nil {
+			return err
+		}
+		hashedPassword := []byte(adminPassword)
 		bytePassword := []byte(password)
 		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
 		return err
 	} else if userType == "trafficWarden" {
-		hashedPassword := []byte(crud.GetPassword(userEmail, userType, db))
+		wardenPassword, err := crud.GetPassword(userEmail, userType, db)
+		if err != nil {
+			return err
+		}
+		hashedPassword := []byte(wardenPassword)
 		bytePassword := []byte(password)
 		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
 		return err
@@ -54,21 +66,24 @@ func ComparePassword(password string, userEmail string, userType string, db *gor
 
 func Login(email string, password string, db *gorm.DB) string {
 	response := ""
-	if crud.GetUserByEmail(email, db).Person.Name != "" {
+	user, _ := crud.GetUserByEmail(email, db)
+	admin, _ := crud.GetAdminByEmail(email, db)
+	warden, _ := crud.GetTrafficWardenByEmail(email, db)
+	if user.Person.Name != "" {
 		err := ComparePassword(password, email, "user", db)
 		if err == nil {
 			response = "user"
 		} else {
 			response = "Senha inválida!"
 		}
-	} else if crud.GetAdminByEmail(email, db).Person.Name != "" {
+	} else if admin.Person.Name != "" {
 		err := ComparePassword(password, email, "admin", db)
 		if err == nil {
 			response = "admin"
 		} else {
 			response = "Senha inválida"
 		}
-	} else if crud.GetTrafficWardenByEmail(email, db).Person.Name != "" {
+	} else if warden.Person.Name != "" {
 		err := ComparePassword(password, email, "trafficWarden", db)
 		if err == nil {
 			response = "trafficWarden"
@@ -94,19 +109,29 @@ func Login(email string, password string, db *gorm.DB) string {
 //}
 //}
 
-func AlterVehicleStatus(vehicle database.Vehicle, parkingTime int, db *gorm.DB) {
+func AlterVehicleStatus(vehicle database.Vehicle, parkingTime int, db *gorm.DB) error {
 	duration := time.Duration(parkingTime)
 	for true {
 		time.Sleep(duration * time.Hour)
-		crud.UpdateIsActive(vehicle.ID, false, db)
-		crud.UpdateIsParked(vehicle.ID, false, db)
+		err := crud.UpdateIsActive(vehicle.ID, false, db)
+		if err != nil {
+			return err
+		}
+		err = crud.UpdateIsParked(vehicle.ID, false, db)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func GetBilletStatus(rechargeID, Bearer string) string {
+func GetBilletStatus(rechargeID, Bearer string) (string, error) {
 	url := "https://sandbox.boletobancario.com/api-integration/charges/" + rechargeID
 
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
 
 	req.Header.Add("X-Api-Version", "2")
 	req.Header.Add("Authorization", Bearer)
@@ -117,34 +142,41 @@ func GetBilletStatus(rechargeID, Bearer string) string {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Println("Error", err)
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Println("Error reading the response:", err)
+		return "", err
 	}
 
 	billet := input.Payment{}
-	json.Unmarshal(body, &billet)
+	err = json.Unmarshal(body, &billet)
+	if err != nil {
+		return "", err
+	}
 
-	//fmt.Println("Response status:", resp.Status)
-	//fmt.Println("Response Headers:", resp.Header)
-	//fmt.Println("Response Body:", string(body))
-	return billet.Status
+	return billet.Status, nil
 }
 
-func CreateAccessToken(bearer, Token string) string {
+func CreateAccessToken(bearer, Token string) (string, error) {
 	endpoint := "https://sandbox.boletobancario.com/authorization-server/oauth/token"
 	data := url.Values{}
 	data.Set("grant_type", "client_credentials")
-	if validateToken(bearer) {
-		return Token
+	val, err := validateToken(bearer)
+	if err != nil {
+		return "", err
+	}
+	if val {
+		return Token, nil
 	} else {
 
-		req, _ := http.NewRequest("Post", endpoint, strings.NewReader(data.Encode()))
+		req, err := http.NewRequest("Post", endpoint, strings.NewReader(data.Encode()))
+		if err != nil {
+			return "", err
+		}
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 		req.Header.Add("Authorization", "Basic UzNDeUtoT09nQTZMeWx0cTouKjFEekY+QlM4UFR6em80MXRqTE9jfSRGaStmQWdIZA==")
@@ -154,28 +186,26 @@ func CreateAccessToken(bearer, Token string) string {
 		resp, err := client.Do(req)
 
 		if err != nil {
-			log.Println("Error", err)
+			return "", err
 		}
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 
 		if err != nil {
-			log.Println("Error reading the response:", err)
+			return "", err
 		}
 
 		token := input.AccessToken{}
-		json.Unmarshal(body, &token)
-
-		//fmt.Println("Response status:", resp.Status)
-		//fmt.Println("Response Headers:", resp.Header)
-		//fmt.Println("Response Body:", string(body))
-
-		return token.AccessToken
+		err = json.Unmarshal(body, &token)
+		if err != nil {
+			return "", err
+		}
+		return token.AccessToken, nil
 	}
 }
 
-func validateToken(bearer string) bool {
+func validateToken(bearer string) (bool, error) {
 	url := "https://sandbox.boletobancario.com/api-integration/digital-accounts"
 
 	req, _ := http.NewRequest("GET", url, nil)
@@ -196,19 +226,18 @@ func validateToken(bearer string) bool {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Println("Error reading the response:", err)
+		return false, err
 	}
 
 	token := input.ValidateAccessToken{}
-	json.Unmarshal(body, &token)
-
-	//fmt.Println("Response status:", resp.Status)
-	//fmt.Println("Response Headers:", resp.Header)
-	//fmt.Println("Response Body:", string(body))
+	err = json.Unmarshal(body, &token)
+	if err != nil {
+		return false, err
+	}
 
 	if resp.Status != "200 OK" {
-		return false
+		return false, nil
 	} else {
-		return true
+		return true, nil
 	}
 }

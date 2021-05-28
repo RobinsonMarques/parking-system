@@ -21,7 +21,10 @@ func main() {
 	if err := migrate(db); err != nil {
 		log.Fatal(err.Error())
 	}
-	app := application.NewApplication(db)
+	app, err := application.NewApplication(db)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	if err := app.Run(); err != nil {
 		log.Fatal(err.Error())
 	}
