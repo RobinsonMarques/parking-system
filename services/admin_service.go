@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewAdminService (db *gorm.DB) AdminService{
+func NewAdminService(db *gorm.DB) AdminService {
 	return AdminService{db: db}
 }
 
@@ -17,19 +17,23 @@ type AdminService struct {
 	db *gorm.DB
 }
 
-func (a AdminService)CreateAdmin(input input2.CreateAdminInput) error {
+func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
 
 	if resp == "admin" {
-		input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+		var err error
+		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
+		if err != nil {
+			return err
+		}
 
 		//Cria o admin
 		admin := database.Admin{
 			Person: input.Person,
 		}
-		err := crud.CreateAdmin(admin, a.db)
-		if err.Data.Error != nil{
-			return err.Data.Error
+		erro := crud.CreateAdmin(admin, a.db)
+		if erro.Data.Error != nil {
+			return erro.Data.Error
 		}
 		return nil
 	} else {
@@ -42,29 +46,33 @@ func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint) e
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
 
 	if resp == "admin" {
-		input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+		var err error
+		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
+		if err != nil {
+			return err
+		}
 		admin, err := crud.GetAdminByID(adminID, a.db)
 		if err == nil {
 			admin.Person = input.Person
 			crud.UpdateAdmin(admin, a.db)
 			return nil
-		}else{
+		} else {
 			return err
 		}
-	}else {
+	} else {
 		err := errors.New(resp)
 		return err
 	}
 }
 
-func (a AdminService)DeleteAdminByID(input input2.LoginInput, adminID uint) error {
+func (a AdminService) DeleteAdminByID(input input2.LoginInput, adminID uint) error {
 	resp := utils.Login(input.Email, input.Password, a.db)
 
 	if resp == "admin" {
 		err := crud.DeleteAdminByID(adminID, a.db)
-		if err == nil{
+		if err == nil {
 			return nil
-		}else{
+		} else {
 			return err
 		}
 	} else {

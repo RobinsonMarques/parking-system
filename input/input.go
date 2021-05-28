@@ -66,7 +66,7 @@ type LoginInput struct {
 }
 
 type CreateRecharge struct {
-	Value       int64      `json:"Value" binding:"required"`
+	Value       float64    `json:"Value" binding:"required"`
 	PaymentType string     `json:"PaymentType" binding:"required"`
 	LoginInput  LoginInput `json:"Login" binding:"required"`
 }
@@ -77,7 +77,7 @@ type Payment struct {
 			Href string `json:"href"`
 		} `json:"self"`
 	} `json:"_links"`
-	Amount        int64 `json:"amount"`
+	Amount        float64 `json:"amount"`
 	BilletDetails struct {
 		BankAccount   string `json:"bankAccount"`
 		BarcodeNumber string `json:"barcodeNumber"`
@@ -92,7 +92,7 @@ type Payment struct {
 	Link            string `json:"link"`
 	PayNumber       string `json:"payNumber"`
 	Payments        []struct {
-		Amount        int64       `json:"amount"`
+		Amount        float64     `json:"amount"`
 		ChargeID      string      `json:"chargeId"`
 		Date          string      `json:"date"`
 		FailReason    interface{} `json:"failReason"`

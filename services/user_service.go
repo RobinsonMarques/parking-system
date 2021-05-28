@@ -18,7 +18,11 @@ type UserService struct {
 }
 
 func (u UserService) CreateUser(input input2.CreateUserInput) error {
-	input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+	var err error
+	input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
+	if err != nil {
+		return err
+	}
 	//Cria o user
 	user := database.User{
 		Person:   input.Person,
@@ -70,7 +74,11 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error
 			err := errors.New("usuário não possui permissão")
 			return err
 		} else {
-			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+			var err error
+			input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
+			if err != nil {
+				return err
+			}
 			user.Person = input.Person
 			user.Document = input.Document
 			crud.UpdateUser(user, u.db)

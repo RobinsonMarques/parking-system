@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTrafficWardenService (db *gorm.DB) TrafficWardenService{
+func NewTrafficWardenService(db *gorm.DB) TrafficWardenService {
 	return TrafficWardenService{db: db}
 }
 
@@ -21,7 +21,11 @@ func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWard
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, t.db)
 
 	if resp == "admin" {
-		input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+		var err error
+		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
+		if err != nil {
+			return err
+		}
 
 		//Cria o traffic warden
 		warden := database.TrafficWarden{
@@ -30,7 +34,7 @@ func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWard
 		resp := crud.CreateTrafficWarden(warden, t.db)
 		if resp.Data.Error != nil {
 			return nil
-		}else{
+		} else {
 			return resp.Data.Error
 		}
 	} else {
@@ -39,18 +43,22 @@ func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWard
 	}
 }
 
-func (t TrafficWardenService) UpdateTrafficWarden( input input2.UpdateTrafficWarden, wardenID uint) error{
+func (t TrafficWardenService) UpdateTrafficWarden(input input2.UpdateTrafficWarden, wardenID uint) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, t.db)
 	if resp == "trafficWarden" || resp == "admin" {
 		trafficWarden, err := crud.GetTrafficWardenByID(wardenID, t.db)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 		if resp == "trafficWarden" && trafficWarden.Person.Email != input.LoginInput.Email {
 			err := errors.New("usuário não possui permissão")
 			return err
 		} else {
-			input.Person.Password = utils.CreateHashPassword(input.Person.Password)
+			var err error
+			input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
+			if err != nil {
+				return err
+			}
 			trafficWarden.Person = input.Person
 			crud.UpdateTrafficWarden(trafficWarden, t.db)
 			return nil
@@ -61,15 +69,14 @@ func (t TrafficWardenService) UpdateTrafficWarden( input input2.UpdateTrafficWar
 	}
 }
 
-
-func (t TrafficWardenService)DeleteTrafficWardenByID(input input2.LoginInput, wardenID uint) error{
+func (t TrafficWardenService) DeleteTrafficWardenByID(input input2.LoginInput, wardenID uint) error {
 	resp := utils.Login(input.Email, input.Password, t.db)
 
 	if resp == "admin" {
 		err := crud.DeleteTrafficWardenByID(wardenID, t.db)
 		if err == nil {
 			return nil
-		}else{
+		} else {
 			return err
 		}
 	} else {

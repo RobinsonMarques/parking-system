@@ -11,7 +11,7 @@ func NewApplication(db *gorm.DB) (Application, error) {
 	TrafficWardenManager := NewTrafficWardenManager(db)
 	VehicleManager := NewVehicleManager(db)
 	ParkingTicketManager := NewParkingTicketManager(db)
-	RechargeManager, err := NewRechargeManager(db)
+	RechargeManager, err := NewRechargeController(db)
 	if err != nil {
 		return Application{}, err
 	}
@@ -33,7 +33,7 @@ type Application struct {
 	TrafficWardenManager TrafficWardenManager
 	VehicleManager       VehicleManager
 	ParkingTicketManager ParkingTicketManager
-	RechargeManager      RechargeManager
+	RechargeManager      RechargeController
 	BilletManager        BilletManager
 }
 

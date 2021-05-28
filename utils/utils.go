@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -17,14 +16,14 @@ import (
 	"time"
 )
 
-func CreateHashPassword(password string) string {
+func CreateHashPassword(password string) (string, error) {
 	bytePassword := []byte(password)
 	hashedPassword, err := bcrypt.GenerateFromPassword(bytePassword, 8)
 
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
-	return string(hashedPassword)
+	return string(hashedPassword), err
 }
 
 func ComparePassword(password string, userEmail string, userType string, db *gorm.DB) error {
@@ -208,7 +207,10 @@ func CreateAccessToken(bearer, Token string) (string, error) {
 func validateToken(bearer string) (bool, error) {
 	url := "https://sandbox.boletobancario.com/api-integration/digital-accounts"
 
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, err
+	}
 
 	req.Header.Add("X-Api-Version", "2")
 	req.Header.Add("Authorization", bearer)
@@ -219,21 +221,9 @@ func validateToken(bearer string) (bool, error) {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Println("Error", err)
+		return false, err
 	}
 	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return false, err
-	}
-
-	token := input.ValidateAccessToken{}
-	err = json.Unmarshal(body, &token)
-	if err != nil {
-		return false, err
-	}
 
 	if resp.Status != "200 OK" {
 		return false, nil
