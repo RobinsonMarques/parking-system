@@ -16,7 +16,7 @@ import (
 )
 
 func CreateBearer() (string, error) {
-	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjMxNjQ3NSwianRpIjoiVk9rckZUcmxOMTFzZ1Ffazh6TDRWTE9WRWVZIiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.VPPewOzPaxpHazBxOyA-58zXMI0xE_9R5-zTvBET2kZkbNenONiFz336pPJ0rxv8SbYBItFFW7o9-YMolPknn71gqTAtx0BuPL-la6K8sbK3GtGuavN2P4JK3LtukD0mv0Ehu-HZGC2wgVZIz0kqEXANMS4lfm202GpPp87-jDbhQdnOyVcyEGa3IQ7KWDUFB2TWEH815iToIgHR-1aDbDm9p0ItdNhR65BqomHYv_a7XyW4p40AGtgJ9c67tLhPOTaOMQXlxFOIkdldVYEI0LvmkGiafbJdMqtO0Zx-FNN4HK0p0nwQhFVeEEBt6x0BCghuj1L1JRtAdMR6J2YS3w"
+	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjU2NzUyOCwianRpIjoiTExwM3Fkd1A2eFlQRmU5UjFPandUeDQ5YVc0IiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.dSXDLWgnicqig_nIoNCqrB_WKacLD89AuWLtx0bfVj2TrQDZ5GNNwmsnxF5koGKSCchcO05N_D8kOISE2-2006V2AgADDgGGkiEweNP7gSKVHKZ8n_0_oFjY7-D1J8L9OxZma4OUciSwc4ZsL0WS4YR_VA_OBx5H23re423IYN0fe7Ons-_a8yJSfzJPJmwV1n8MgH_0B0DoyCefURI8YR0UbuTAdAiuoUw5uSmn2Plt8nx_U10bj1ZcjK_pFGsf7xmXX5FznIghxabYMlI8uMDJ7VlIxKMhVjtsb67IU_kXNObLJsU2yeRnoBRMn04r-mcS86iiyda7J4COPJg5bw"
 	var Bearer = "Bearer" + Token
 	Token, err := utils.CreateAccessToken(Bearer, Token)
 	if err != nil {
@@ -41,7 +41,9 @@ type RechargeService struct {
 
 func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, r.db)
-	user, err := crud.GetUserByEmail(input.LoginInput.Email, r.db)
+	rechargeCrud := crud.NewRechargeCrud(r.db)
+	crud := crud.NewCrud(r.db)
+	user, err := crud.UserCrud.GetUserByEmail(input.LoginInput.Email)
 	if err != nil {
 		return err
 	}
@@ -50,7 +52,7 @@ func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string)
 		var chargeString = fmt.Sprintf(`{
 "charge": {
             "description": "Recarga de crédito",
-            "amount": %d,
+            "amount": %.2f,
             "paymentTypes": ["BOLETO"]
         },
         "billing": {
@@ -61,7 +63,6 @@ func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string)
         }
 }`, input.Value, user.Person.Name, user.Document, user.Person.Email)
 		var jsonRequest = []byte(chargeString)
-		//jsonRecharge, _ := json.Marshal(jsonStr)
 
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonRequest))
 		if err != nil {
@@ -75,7 +76,10 @@ func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string)
 		client := &http.Client{}
 
 		res, err := client.Do(req)
-
+		if res.StatusCode != 200 {
+			err := errors.New(res.Status)
+			return err
+		}
 		if err != nil {
 			return err
 		}
@@ -101,12 +105,12 @@ func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string)
 			RechargeHash: response.Embedded.Charges[0].ID,
 		}
 
-		respo := crud.CreateRecharge(finalRecharge, r.db)
-		if respo.Data.Error != nil {
-			return respo.Data.Error
+		err = rechargeCrud.CreateRecharge(finalRecharge)
+		if err != nil {
+			return err
 		}
 
-		rechargeReturn, err := crud.GetRechargeByUserId(user.ID, r.db)
+		rechargeReturn, err := rechargeCrud.GetRechargeByUserId(user.ID)
 		if err != nil {
 			return err
 		}
@@ -115,7 +119,10 @@ func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string)
 			BilletLink: response.Embedded.Charges[0].Link,
 			RechargeID: rechargeReturn[leng-1].ID,
 		}
-		crud.CreateBillet(billet, r.db)
+		err = crud.BilletCrud.CreateBillet(billet)
+		if err != nil {
+			return err
+		}
 		return nil
 	} else {
 		err := errors.New(resp)
@@ -125,13 +132,14 @@ func (r RechargeService) CreateRecharge(input input2.CreateRecharge, url string)
 
 func (r RechargeService) GetRechargeStatus(input input2.LoginInput) error {
 	resp := utils.Login(input.Email, input.Password, r.db)
-
+	rechargeCrud := crud.NewRechargeCrud(r.db)
+	crud := crud.NewCrud(r.db)
 	if resp == "user" {
-		user, err := crud.GetUserByEmail(input.Email, r.db)
+		user, err := crud.UserCrud.GetUserByEmail(input.Email)
 		if err != nil {
 			return err
 		}
-		unpaidRecharges, err := crud.GetUserUnpaidRechargesByID(user.ID, r.db)
+		unpaidRecharges, err := rechargeCrud.GetUserUnpaidRechargesByID(user.ID)
 		if err != nil {
 			return err
 		}
@@ -143,18 +151,18 @@ func (r RechargeService) GetRechargeStatus(input input2.LoginInput) error {
 			}
 
 			if status == "CANCELLED" || status == "MANUAL_RECONCILIATION" || status == "FAILED" {
-				err := crud.DeleteRechargeByID(unpaidRecharge.ID, r.db)
+				err := rechargeCrud.DeleteRechargeByID(unpaidRecharge.ID, crud)
 				if err != nil {
 					return err
 				}
 			}
 
 			if status == "PAID" {
-				err := crud.UpdateBalance(user.Person.Email, float64(unpaidRecharge.Value), r.db)
+				err := crud.UserCrud.UpdateBalance(user.Person.Email, unpaidRecharge.Value, crud)
 				if err != nil {
 					return err
 				}
-				err = crud.UpdateIsPaid(unpaidRecharge.ID, r.db)
+				err = rechargeCrud.UpdateIsPaid(unpaidRecharge.ID)
 				if err != nil {
 					return err
 				}
@@ -168,8 +176,10 @@ func (r RechargeService) GetRechargeStatus(input input2.LoginInput) error {
 
 func (r RechargeService) DeleteRechargeByID(input input2.LoginInput, rechargeID uint) error {
 	resp := utils.Login(input.Email, input.Password, r.db)
+	rechargeCrud := crud.NewRechargeCrud(r.db)
+	crud := crud.NewCrud(r.db)
 	if resp == "admin" {
-		err := crud.DeleteRechargeByID(rechargeID, r.db)
+		err := rechargeCrud.DeleteRechargeByID(rechargeID, crud)
 		if err != nil {
 			return err
 		}

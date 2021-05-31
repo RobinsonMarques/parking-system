@@ -31,26 +31,28 @@ func (u UserService) CreateUser(input input2.CreateUserInput) error {
 		Recharge: nil,
 		Vehicle:  nil,
 	}
-	resp := crud.CreateUser(user, u.db)
-	if resp.Data.Error != nil {
-		return resp.Data.Error
+	userCrud := crud.NewUserCrud(u.db)
+	err = userCrud.CreateUser(user)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 func (u UserService) GetUserByDocument(input input2.LoginInput, document string) (database.User, error) {
 	resp := utils.Login(input.Email, input.Password, u.db)
-
+	userCrud := crud.NewUserCrud(u.db)
+	crud := crud.NewCrud(u.db)
 	if resp == "admin" {
-		user, err := crud.GetUserByDocument(document, u.db)
+		user, err := userCrud.GetUserByDocument(document)
 		if err != nil {
 			return user, err
 		}
-		vehicles, _ := crud.GetVehiclesByUserId(user.ID, u.db)
-		recharges, _ := crud.GetRechargeByUserId(user.ID, u.db)
+		vehicles, _ := crud.VehicleCrud.GetVehiclesByUserId(user.ID)
+		recharges, _ := crud.RechargeCrud.GetRechargeByUserId(user.ID)
 
 		for i := range recharges {
-			billet, _ := crud.GetBilletByRechargeId(recharges[i].ID, u.db)
+			billet, _ := crud.BilletCrud.GetBilletByRechargeId(recharges[i].ID)
 			recharges[i].Billet = billet
 		}
 		user.Vehicle = vehicles
@@ -64,9 +66,9 @@ func (u UserService) GetUserByDocument(input input2.LoginInput, document string)
 
 func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, u.db)
-
+	userCrud := crud.NewUserCrud(u.db)
 	if resp == "user" || resp == "admin" {
-		user, err := crud.GetUserByID(userID, u.db)
+		user, err := userCrud.GetUserByID(userID)
 		if err != nil {
 			return err
 		}
@@ -81,7 +83,10 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error
 			}
 			user.Person = input.Person
 			user.Document = input.Document
-			crud.UpdateUser(user, u.db)
+			err = userCrud.UpdateUser(user)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	} else {
@@ -92,9 +97,10 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error
 
 func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error {
 	resp := utils.Login(input.Email, input.Password, u.db)
-
+	userCrud := crud.NewUserCrud(u.db)
+	crud := crud.NewCrud(u.db)
 	if resp == "user" || resp == "admin" {
-		user, err := crud.GetUserByEmail(input.Email, u.db)
+		user, err := userCrud.GetUserByEmail(input.Email)
 		if err != nil {
 			return err
 		}
@@ -102,7 +108,10 @@ func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error 
 			err := errors.New("usuário não possui permissão")
 			return err
 		} else {
-			crud.DeleteUserByID(userID, u.db)
+			err := userCrud.DeleteUserByID(userID, crud)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	} else {

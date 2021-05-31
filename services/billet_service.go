@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewBilletService (db *gorm.DB) BilletService{
+func NewBilletService(db *gorm.DB) BilletService {
 	return BilletService{db: db}
 }
 
@@ -16,14 +16,14 @@ type BilletService struct {
 	db *gorm.DB
 }
 
-func (b BilletService)DeleteBilletByID(input input2.LoginInput, billetID uint) error{
+func (b BilletService) DeleteBilletByID(input input2.LoginInput, billetID uint) error {
 	resp := utils.Login(input.Email, input.Password, b.db)
-
+	billetCrud := crud.NewBilletCrud(b.db)
 	if resp == "admin" {
-		err := crud.DeleteBilletByID(billetID, b.db)
-		if err == nil{
+		err := billetCrud.DeleteBilletByID(billetID)
+		if err == nil {
 			return nil
-		}else{
+		} else {
 			return err
 		}
 	} else {

@@ -26,11 +26,11 @@ func (a UserController) CreateUser(c *gin.Context) {
 	}
 	userService := services.NewUserService(a.db)
 	err := userService.CreateUser(input)
-	if err == nil {
-		c.JSON(http.StatusOK, gin.H{"Response": "Usuário criado"})
-	} else {
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+		return
 	}
+	c.JSON(http.StatusOK, gin.H{"Response": "Usuário criado"})
 }
 
 func (a UserController) GetUserByDocument(c *gin.Context) {

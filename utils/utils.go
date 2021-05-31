@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	"github.com/RobinsonMarques/parking-system/input"
@@ -28,18 +29,15 @@ func CreateHashPassword(password string) (string, error) {
 
 func ComparePassword(password string, userEmail string, userType string, db *gorm.DB) error {
 	var err error
-
+	crud := crud.NewCrud(db)
 	if userType == "user" {
-		userPassword, err := crud.GetPassword(userEmail, userType, db)
-		if err != nil {
-			return err
-		}
+		userPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
 		hashedPassword := []byte(userPassword)
 		bytePassword := []byte(password)
 		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
 		return err
 	} else if userType == "admin" {
-		adminPassword, err := crud.GetPassword(userEmail, userType, db)
+		adminPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
 		if err != nil {
 			return err
 		}
@@ -48,7 +46,7 @@ func ComparePassword(password string, userEmail string, userType string, db *gor
 		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
 		return err
 	} else if userType == "trafficWarden" {
-		wardenPassword, err := crud.GetPassword(userEmail, userType, db)
+		wardenPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
 		if err != nil {
 			return err
 		}
@@ -65,9 +63,10 @@ func ComparePassword(password string, userEmail string, userType string, db *gor
 
 func Login(email string, password string, db *gorm.DB) string {
 	response := ""
-	user, _ := crud.GetUserByEmail(email, db)
-	admin, _ := crud.GetAdminByEmail(email, db)
-	warden, _ := crud.GetTrafficWardenByEmail(email, db)
+	crud := crud.NewCrud(db)
+	user, _ := crud.UserCrud.GetUserByEmail(email)
+	admin, _ := crud.AdminCrud.GetAdminByEmail(email)
+	warden, _ := crud.TrafficWardenCrud.GetTrafficWardenByEmail(email)
 	if user.Person.Name != "" {
 		err := ComparePassword(password, email, "user", db)
 		if err == nil {
@@ -110,13 +109,14 @@ func Login(email string, password string, db *gorm.DB) string {
 
 func AlterVehicleStatus(vehicle database.Vehicle, parkingTime int, db *gorm.DB) error {
 	duration := time.Duration(parkingTime)
+	crud := crud.NewCrud(db)
 	for true {
 		time.Sleep(duration * time.Hour)
-		err := crud.UpdateIsActive(vehicle.ID, false, db)
+		err := crud.VehicleCrud.UpdateIsActive(vehicle.ID, false)
 		if err != nil {
 			return err
 		}
-		err = crud.UpdateIsParked(vehicle.ID, false, db)
+		err = crud.VehicleCrud.UpdateIsParked(vehicle.ID, false)
 		if err != nil {
 			return err
 		}
@@ -139,6 +139,10 @@ func GetBilletStatus(rechargeID, Bearer string) (string, error) {
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
+	if resp.StatusCode != 200 {
+		err := errors.New(resp.Status)
+		return "", err
+	}
 
 	if err != nil {
 		return "", err

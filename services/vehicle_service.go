@@ -6,22 +6,28 @@ import (
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/utils"
-	"gorm.io/gorm"
 )
 
-func NewVehicleService(db *gorm.DB) VehicleService {
-	return VehicleService{db: db}
+func NewVehicleService(VehicleCrud crud.VehicleCrud, UserCrud crud.UserCrud, ParkingTicketCrud crud.ParkingTicketCrud, UtilCrud crud.UtilCrud) VehicleService {
+	return VehicleService{
+		vehicleCrud:       VehicleCrud,
+		userCrud:          UserCrud,
+		parkingTicketCrud: ParkingTicketCrud,
+		util:              UtilCrud,
+	}
 }
 
 type VehicleService struct {
-	db *gorm.DB
+	vehicleCrud       crud.VehicleCrud
+	userCrud          crud.UserCrud
+	parkingTicketCrud crud.ParkingTicketCrud
+	util              crud.UtilCrud
 }
 
-func (v VehicleService) GetAllVehicles(input input2.LoginInput) ([]database.Vehicle, error) {
-	resp := utils.Login(input.Email, input.Password, v.db)
-
+func (v VehicleService) GetAllVehicles(input input2.LoginInput, service VehicleService) ([]database.Vehicle, error) {
+	resp := service.util.Login(input.Email, input.Password)
 	if resp == "trafficWarden" || resp == "admin" {
-		vehicles, err := crud.GetAllVehicles(v.db)
+		vehicles, err := service.vehicleCrud.GetAllVehicles()
 		if err != nil {
 			return []database.Vehicle{}, err
 		}
@@ -32,8 +38,8 @@ func (v VehicleService) GetAllVehicles(input input2.LoginInput) ([]database.Vehi
 	}
 }
 
-func (v VehicleService) CreateVehicle(input input2.CreateVehicle) error {
-	_, err := crud.GetUserByID(input.UserID, v.db)
+func (v VehicleService) CreateVehicle(input input2.CreateVehicle, service VehicleService) error {
+	_, err := service.userCrud.GetUserByID(input.UserID)
 	if err == nil {
 		//Cria o veículo
 		veiculo := database.Vehicle{
@@ -45,11 +51,11 @@ func (v VehicleService) CreateVehicle(input input2.CreateVehicle) error {
 			UserID:        input.UserID,
 			ParkingTicket: nil,
 		}
-		resp := crud.CreateVehicle(veiculo, v.db)
-		if resp.Data.Error == nil {
+		err := service.vehicleCrud.CreateVehicle(veiculo)
+		if err == nil {
 			return nil
 		} else {
-			return resp.Data.Error
+			return err
 		}
 	} else {
 		err := errors.New("usuário não encontrado")
@@ -59,13 +65,14 @@ func (v VehicleService) CreateVehicle(input input2.CreateVehicle) error {
 
 func (v VehicleService) GetVehicleByLicensePlate(input input2.LoginInput, licensePlate string) (database.Vehicle, error) {
 	resp := utils.Login(input.Email, input.Password, v.db)
-
+	vehicleCrud := crud.NewVehicleCrud(v.db)
+	crud := crud.NewCrud(v.db)
 	if resp == "trafficWarden" {
-		vehicle, err := crud.GetVehicleByLicensePlate(licensePlate, v.db)
+		vehicle, err := vehicleCrud.GetVehicleByLicensePlate(licensePlate)
 		if err != nil {
 			return vehicle, err
 		}
-		ticket, err := crud.GetLastParkingTicketFromVehicle(vehicle.ID, v.db)
+		ticket, err := crud.ParkingTicketCrud.GetLastParkingTicketFromVehicle(vehicle.ID)
 		if err != nil {
 			return vehicle, err
 		}
@@ -80,11 +87,13 @@ func (v VehicleService) GetVehicleByLicensePlate(input input2.LoginInput, licens
 
 func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, v.db)
-	user, err := crud.GetUserByEmail(input.LoginInput.Email, v.db)
+	vehicleCrud := crud.NewVehicleCrud(v.db)
+	crud := crud.NewCrud(v.db)
+	user, err := crud.UserCrud.GetUserByEmail(input.LoginInput.Email)
 	if err != nil {
 		return err
 	}
-	vehicles, err := crud.GetVehiclesByUserId(user.ID, v.db)
+	vehicles, err := vehicleCrud.GetVehiclesByUserId(user.ID)
 	if err != nil {
 		return err
 	}
@@ -97,14 +106,14 @@ func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle) error {
 
 	if resp == "user" {
 		if resp2 {
-			vehicle, err := crud.GetVehicleByLicensePlate(input.LicensePlate, v.db)
+			vehicle, err := vehicleCrud.GetVehicleByLicensePlate(input.LicensePlate)
 			if err != nil {
 				return err
 			}
 			vehicle.VehicleModel = input.VehicleModel
 			vehicle.VehicleType = input.VehicleType
 			vehicle.LicensePlate = input.NewLicensePlate
-			err = crud.UpdateVehicle(vehicle, v.db)
+			err = vehicleCrud.UpdateVehicle(vehicle)
 			if err != nil {
 				return err
 			}
@@ -121,13 +130,15 @@ func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle) error {
 
 func (v VehicleService) UpdateVehicleOwner(input input2.UpdateVehicleOwner, vehicleID uint) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, v.db)
-	user, err := crud.GetUserByID(input.NewUserID, v.db)
+	vehicleCrud := crud.NewVehicleCrud(v.db)
+	crud := crud.NewCrud(v.db)
+	user, err := crud.UserCrud.GetUserByID(input.NewUserID)
 	if err != nil {
 		return err
 	}
 	if resp == "admin" {
 		if user.Person.Name != "" {
-			crud.UpdateVehicleOwner(vehicleID, input.NewUserID, v.db)
+			vehicleCrud.UpdateVehicleOwner(vehicleID, input.NewUserID)
 			return nil
 		} else {
 			err := errors.New("usuário inexistente")
@@ -141,13 +152,14 @@ func (v VehicleService) UpdateVehicleOwner(input input2.UpdateVehicleOwner, vehi
 
 func (v VehicleService) DeleteVehicleByID(input input2.LoginInput, vehicleID uint) error {
 	resp := utils.Login(input.Email, input.Password, v.db)
-
+	vehicleCrud := crud.NewVehicleCrud(v.db)
+	crud := crud.NewCrud(v.db)
 	if resp == "user" || resp == "admin" {
-		vehicle, err := crud.GetVehicleById(vehicleID, v.db)
+		vehicle, err := vehicleCrud.GetVehicleById(vehicleID)
 		if err != nil {
 			return err
 		}
-		user, err := crud.GetUserByEmail(input.Email, v.db)
+		user, err := crud.UserCrud.GetUserByEmail(input.Email)
 		if err != nil {
 			return err
 		}
@@ -155,7 +167,7 @@ func (v VehicleService) DeleteVehicleByID(input input2.LoginInput, vehicleID uin
 			err := errors.New("usuário logado não possui permissão")
 			return err
 		} else {
-			err := crud.DeleteVehicleByID(vehicleID, v.db)
+			err := vehicleCrud.DeleteVehicleByID(vehicleID, crud)
 			if err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
@@ -20,12 +21,16 @@ type VehicleManager struct {
 func (a VehicleManager) GetAllVehicles(c *gin.Context) {
 	//valida o input
 	var input input2.LoginInput
+	vehicleCrud := crud.NewVehicleCrud(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(a.db)
+	util := crud.NewUtilCrud(a.db)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, util)
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	vehicleService := services.NewVehicleService(a.db)
-	vehicles, err := vehicleService.GetAllVehicles(input)
+	vehicles, err := vehicleService.GetAllVehicles(input, vehicleService)
 	if err == nil {
 		c.JSON(200, vehicles)
 	} else {
@@ -36,12 +41,16 @@ func (a VehicleManager) GetAllVehicles(c *gin.Context) {
 
 func (a VehicleManager) CreateVehicle(c *gin.Context) {
 	var input input2.CreateVehicle
+	vehicleCrud := crud.NewVehicleCrud(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(a.db)
+	util := crud.NewUtilCrud(a.db)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, util)
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	vehicleService := services.NewVehicleService(a.db)
-	err := vehicleService.CreateVehicle(input)
+	err := vehicleService.CreateVehicle(input, vehicleService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Veículo criado"})
 	} else {

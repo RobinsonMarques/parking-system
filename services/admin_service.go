@@ -19,7 +19,7 @@ type AdminService struct {
 
 func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-
+	adminCrud := crud.NewAdminCrud(a.db)
 	if resp == "admin" {
 		var err error
 		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
@@ -31,9 +31,9 @@ func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 		admin := database.Admin{
 			Person: input.Person,
 		}
-		erro := crud.CreateAdmin(admin, a.db)
-		if erro.Data.Error != nil {
-			return erro.Data.Error
+		err = adminCrud.CreateAdmin(admin)
+		if err != nil {
+			return err
 		}
 		return nil
 	} else {
@@ -44,17 +44,17 @@ func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 
 func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint) error {
 	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-
+	adminCrud := crud.NewAdminCrud(a.db)
 	if resp == "admin" {
 		var err error
 		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
 		if err != nil {
 			return err
 		}
-		admin, err := crud.GetAdminByID(adminID, a.db)
+		admin, err := adminCrud.GetAdminByID(adminID)
 		if err == nil {
 			admin.Person = input.Person
-			crud.UpdateAdmin(admin, a.db)
+			adminCrud.UpdateAdmin(admin)
 			return nil
 		} else {
 			return err
@@ -67,9 +67,9 @@ func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint) e
 
 func (a AdminService) DeleteAdminByID(input input2.LoginInput, adminID uint) error {
 	resp := utils.Login(input.Email, input.Password, a.db)
-
+	adminCrud := crud.NewAdminCrud(a.db)
 	if resp == "admin" {
-		err := crud.DeleteAdminByID(adminID, a.db)
+		err := adminCrud.DeleteAdminByID(adminID)
 		if err == nil {
 			return nil
 		} else {
