@@ -5,28 +5,32 @@ import (
 	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
-	"github.com/RobinsonMarques/parking-system/utils"
-	"gorm.io/gorm"
 	"time"
 )
 
-func NewParkingTicketService(db *gorm.DB) ParkingTicketService {
-	return ParkingTicketService{db: db}
+func NewParkingTicketService(parkingTicketCrud crud.ParkingTicketCrud, vehicleCrud crud.VehicleCrud, userCrud crud.UserCrud, utilCrud crud.UtilCrud) ParkingTicketService {
+	return ParkingTicketService{
+		parkingTicketCrud: parkingTicketCrud,
+		vehicleCrud:       vehicleCrud,
+		userCrud:          userCrud,
+		utilCrud:          utilCrud,
+	}
 }
 
 type ParkingTicketService struct {
-	db *gorm.DB
+	parkingTicketCrud crud.ParkingTicketCrud
+	vehicleCrud       crud.VehicleCrud
+	userCrud          crud.UserCrud
+	utilCrud          crud.UtilCrud
 }
 
-func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTicket) error {
-	resp := utils.Login(input.Login.Email, input.Login.Password, p.db)
-	parkingTicketCrud := crud.NewParkingTicketCrud(p.db)
-	crud := crud.NewCrud(p.db)
-	resp2, err := crud.VehicleCrud.GetVehicleById(input.VehicleID)
+func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTicket, service ParkingTicketService) error {
+	resp := service.utilCrud.Login(input.Login.Email, input.Login.Password)
+	resp2, err := service.vehicleCrud.GetVehicleById(input.VehicleID)
 	if err != nil {
 		return err
 	}
-	user, err := crud.UserCrud.GetUserByEmail(input.Login.Email)
+	user, err := service.userCrud.GetUserByEmail(input.Login.Email)
 	if err != nil {
 		return err
 	}
@@ -46,23 +50,23 @@ func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTick
 							Price:       price,
 							VehicleID:   input.VehicleID,
 						}
-						err := parkingTicketCrud.CreateParkingTicket(ticket)
+						err := service.parkingTicketCrud.CreateParkingTicket(ticket)
 						if err != nil {
 							return err
 						}
-						err2 := crud.VehicleCrud.UpdateIsParked(input.VehicleID, true)
+						err2 := service.vehicleCrud.UpdateIsParked(input.VehicleID, true)
 						if err2 != nil {
 							return nil
 						}
-						err2 = crud.UserCrud.UpdateBalance(input.Login.Email, -price, crud)
+						err2 = service.userCrud.UpdateBalance(input.Login.Email, -price)
 						if err2 != nil {
 							return err2
 						}
-						err2 = crud.VehicleCrud.UpdateIsActive(input.VehicleID, true)
+						err2 = service.vehicleCrud.UpdateIsActive(input.VehicleID, true)
 						if err2 != nil {
 							return err2
 						}
-						go utils.AlterVehicleStatus(resp2, input.ParkingTime, p.db)
+						go service.vehicleCrud.AlterVehicleStatus(resp2, input.ParkingTime)
 						return nil
 					} else {
 						err := errors.New("saldo insuficiente")
@@ -86,11 +90,10 @@ func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTick
 	}
 }
 
-func (p ParkingTicketService) DeleteParkingTicketByID(input input2.LoginInput, ticketID uint) error {
-	resp := utils.Login(input.Email, input.Password, p.db)
-	parkingTicketCrud := crud.NewParkingTicketCrud(p.db)
+func (p ParkingTicketService) DeleteParkingTicketByID(input input2.LoginInput, ticketID uint, service ParkingTicketService) error {
+	resp := service.utilCrud.Login(input.Email, input.Password)
 	if resp == "admin" {
-		err := parkingTicketCrud.DeleteParkingTicketByID(ticketID)
+		err := service.parkingTicketCrud.DeleteParkingTicketByID(ticketID)
 		if err != nil {
 			return err
 		}

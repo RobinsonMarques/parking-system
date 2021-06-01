@@ -3,6 +3,7 @@ package crud
 import (
 	"github.com/RobinsonMarques/parking-system/database"
 	"gorm.io/gorm"
+	"time"
 )
 
 func NewVehicleCrud(db *gorm.DB) VehicleCrud {
@@ -75,9 +76,25 @@ func (v VehicleCrud) UpdateIsActive(vehicleID uint, value bool) error {
 	return err
 }
 
-func (v VehicleCrud) DeleteVehicleByID(vehicleID uint, crud Crud) error {
+func (v VehicleCrud) AlterVehicleStatus(vehicle database.Vehicle, parkingTime int) error {
+	duration := time.Duration(parkingTime)
+	vehicleCrud := NewVehicleCrud(v.db)
+	for true {
+		time.Sleep(duration * time.Hour)
+		err := vehicleCrud.UpdateIsActive(vehicle.ID, false)
+		if err != nil {
+			return err
+		}
+		err = vehicleCrud.UpdateIsParked(vehicle.ID, false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (v VehicleCrud) DeleteVehicleByID(vehicleID uint) error {
 	err := v.db.Table("vehicles").Where("id = ?", vehicleID).Delete(&database.Vehicle{}).Error
-	crud.ParkingTicketCrud.DeleteParkingTicketByVehicleID(vehicleID)
 	return err
 }
 

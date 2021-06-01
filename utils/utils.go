@@ -3,18 +3,13 @@ package utils
 import (
 	"encoding/json"
 	"errors"
-	"github.com/RobinsonMarques/parking-system/crud"
-	"github.com/RobinsonMarques/parking-system/database"
 	"github.com/RobinsonMarques/parking-system/input"
-	"go/types"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func CreateHashPassword(password string) (string, error) {
@@ -27,73 +22,72 @@ func CreateHashPassword(password string) (string, error) {
 	return string(hashedPassword), err
 }
 
-func ComparePassword(password string, userEmail string, userType string, db *gorm.DB) error {
-	var err error
-	crud := crud.NewCrud(db)
-	if userType == "user" {
-		userPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
-		hashedPassword := []byte(userPassword)
-		bytePassword := []byte(password)
-		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
-		return err
-	} else if userType == "admin" {
-		adminPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
-		if err != nil {
-			return err
-		}
-		hashedPassword := []byte(adminPassword)
-		bytePassword := []byte(password)
-		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
-		return err
-	} else if userType == "trafficWarden" {
-		wardenPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
-		if err != nil {
-			return err
-		}
-		hashedPassword := []byte(wardenPassword)
-		bytePassword := []byte(password)
-		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
-		return err
-	} else {
-		err = types.Error{Msg: "Tipo de usuário inválido"}
-		return err
-	}
-
-}
-
-func Login(email string, password string, db *gorm.DB) string {
-	response := ""
-	crud := crud.NewCrud(db)
-	user, _ := crud.UserCrud.GetUserByEmail(email)
-	admin, _ := crud.AdminCrud.GetAdminByEmail(email)
-	warden, _ := crud.TrafficWardenCrud.GetTrafficWardenByEmail(email)
-	if user.Person.Name != "" {
-		err := ComparePassword(password, email, "user", db)
-		if err == nil {
-			response = "user"
-		} else {
-			response = "Senha inválida!"
-		}
-	} else if admin.Person.Name != "" {
-		err := ComparePassword(password, email, "admin", db)
-		if err == nil {
-			response = "admin"
-		} else {
-			response = "Senha inválida"
-		}
-	} else if warden.Person.Name != "" {
-		err := ComparePassword(password, email, "trafficWarden", db)
-		if err == nil {
-			response = "trafficWarden"
-		} else {
-			response = "Senha inválida"
-		}
-	} else {
-		response = "Usuário não cadastrado"
-	}
-
-	return response
-}
+//func ComparePassword(password string, userEmail string, userType string, db *gorm.DB) error {
+//	var err error
+//	crud := crud.NewCrud(db)
+//	if userType == "user" {
+//		userPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
+//		hashedPassword := []byte(userPassword)
+//		bytePassword := []byte(password)
+//		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
+//		return err
+//	} else if userType == "admin" {
+//		adminPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
+//		if err != nil {
+//			return err
+//		}
+//		hashedPassword := []byte(adminPassword)
+//		bytePassword := []byte(password)
+//		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
+//		return err
+//	} else if userType == "trafficWarden" {
+//		wardenPassword, err := crud.UtilCrud.GetPassword(userEmail, userType, crud)
+//		if err != nil {
+//			return err
+//		}
+//		hashedPassword := []byte(wardenPassword)
+//		bytePassword := []byte(password)
+//		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
+//		return err
+//	} else {
+//		err = types.Error{Msg: "Tipo de usuário inválido"}
+//		return err
+//	}
+//}
+//
+//func Login(email string, password string, db *gorm.DB) string {
+//	response := ""
+//	crud := crud.NewCrud(db)
+//	user, _ := crud.UserCrud.GetUserByEmail(email)
+//	admin, _ := crud.AdminCrud.GetAdminByEmail(email)
+//	warden, _ := crud.TrafficWardenCrud.GetTrafficWardenByEmail(email)
+//	if user.Person.Name != "" {
+//		err := ComparePassword(password, email, "user", db)
+//		if err == nil {
+//			response = "user"
+//		} else {
+//			response = "Senha inválida!"
+//		}
+//	} else if admin.Person.Name != "" {
+//		err := ComparePassword(password, email, "admin", db)
+//		if err == nil {
+//			response = "admin"
+//		} else {
+//			response = "Senha inválida"
+//		}
+//	} else if warden.Person.Name != "" {
+//		err := ComparePassword(password, email, "trafficWarden", db)
+//		if err == nil {
+//			response = "trafficWarden"
+//		} else {
+//			response = "Senha inválida"
+//		}
+//	} else {
+//		response = "Usuário não cadastrado"
+//	}
+//
+//	return response
+//}
 
 //func AlterVehicleStatus(vehicle database.Vehicle, db *gorm.DB) {
 //ticket := crud.GetLastParkingTicketFromVehicle(vehicle.ID, db)
@@ -106,23 +100,6 @@ func Login(email string, password string, db *gorm.DB) string {
 //crud.UpdateIsParked(vehicle.ID, false, db)
 //}
 //}
-
-func AlterVehicleStatus(vehicle database.Vehicle, parkingTime int, db *gorm.DB) error {
-	duration := time.Duration(parkingTime)
-	crud := crud.NewCrud(db)
-	for true {
-		time.Sleep(duration * time.Hour)
-		err := crud.VehicleCrud.UpdateIsActive(vehicle.ID, false)
-		if err != nil {
-			return err
-		}
-		err = crud.VehicleCrud.UpdateIsParked(vehicle.ID, false)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 func GetBilletStatus(rechargeID, Bearer string) (string, error) {
 	url := "https://sandbox.boletobancario.com/api-integration/charges/" + rechargeID

@@ -60,14 +60,17 @@ func (a VehicleManager) CreateVehicle(c *gin.Context) {
 
 func (a VehicleManager) GetVehicleByLicensePlate(c *gin.Context) {
 	licensePlate := c.Param("licensePlate")
-
+	vehicleCrud := crud.NewVehicleCrud(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(a.db)
+	util := crud.NewUtilCrud(a.db)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, util)
 	var input input2.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	vehicleService := services.NewVehicleService(a.db)
-	vehicle, err := vehicleService.GetVehicleByLicensePlate(input, licensePlate)
+	vehicle, err := vehicleService.GetVehicleByLicensePlate(input, licensePlate, vehicleService)
 	if err == nil {
 		c.JSON(200, vehicle)
 	} else {
@@ -77,12 +80,16 @@ func (a VehicleManager) GetVehicleByLicensePlate(c *gin.Context) {
 
 func (a VehicleManager) UpdateVehicle(c *gin.Context) {
 	var input input2.UpdateVehicle
+	vehicleCrud := crud.NewVehicleCrud(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(a.db)
+	util := crud.NewUtilCrud(a.db)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, util)
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	vehicleService := services.NewVehicleService(a.db)
-	err := vehicleService.UpdateVehicle(input)
+	err := vehicleService.UpdateVehicle(input, vehicleService)
 	if err == nil {
 		c.JSON(http.StatusOK, "Usuário alterado com sucesso")
 	} else {
@@ -94,13 +101,17 @@ func (a VehicleManager) UpdateVehicleOwner(c *gin.Context) {
 	vehicleIDString := c.Param("vehicleID")
 	vehicleIDInt, _ := strconv.Atoi(vehicleIDString)
 	vehicleID := uint(vehicleIDInt)
+	vehicleCrud := crud.NewVehicleCrud(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(a.db)
+	util := crud.NewUtilCrud(a.db)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, util)
 	var input input2.UpdateVehicleOwner
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	vehicleService := services.NewVehicleService(a.db)
-	err := vehicleService.UpdateVehicleOwner(input, vehicleID)
+	err := vehicleService.UpdateVehicleOwner(input, vehicleID, vehicleService)
 	if err == nil {
 		c.JSON(http.StatusOK, "Dono do veículo alterado com sucesso")
 	} else {
@@ -112,14 +123,17 @@ func (a VehicleManager) DeleteVehicleByID(c *gin.Context) {
 	vehicleIDString := c.Param("vehicleID")
 	vehicleIDInt, _ := strconv.Atoi(vehicleIDString)
 	vehicleID := uint(vehicleIDInt)
-
+	vehicleCrud := crud.NewVehicleCrud(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(a.db)
+	util := crud.NewUtilCrud(a.db)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, util)
 	var input input2.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	vehicleService := services.NewVehicleService(a.db)
-	err := vehicleService.DeleteVehicleByID(input, vehicleID)
+	err := vehicleService.DeleteVehicleByID(input, vehicleID, vehicleService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Veículo deletado"})
 	} else {

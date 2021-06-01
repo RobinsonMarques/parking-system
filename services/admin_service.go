@@ -6,20 +6,22 @@ import (
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/utils"
-	"gorm.io/gorm"
 )
 
-func NewAdminService(db *gorm.DB) AdminService {
-	return AdminService{db: db}
+func NewAdminService(adminCrud crud.AdminCrud, utilCrud crud.UtilCrud) AdminService {
+	return AdminService{
+		adminCrud: adminCrud,
+		utilCrud:  utilCrud,
+	}
 }
 
 type AdminService struct {
-	db *gorm.DB
+	adminCrud crud.AdminCrud
+	utilCrud  crud.UtilCrud
 }
 
-func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-	adminCrud := crud.NewAdminCrud(a.db)
+func (a AdminService) CreateAdmin(input input2.CreateAdminInput, service AdminService) error {
+	resp := service.utilCrud.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "admin" {
 		var err error
 		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
@@ -31,7 +33,7 @@ func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 		admin := database.Admin{
 			Person: input.Person,
 		}
-		err = adminCrud.CreateAdmin(admin)
+		err = service.adminCrud.CreateAdmin(admin)
 		if err != nil {
 			return err
 		}
@@ -42,19 +44,18 @@ func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 	}
 }
 
-func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint) error {
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, a.db)
-	adminCrud := crud.NewAdminCrud(a.db)
+func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint, service AdminService) error {
+	resp := service.utilCrud.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "admin" {
 		var err error
 		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
 		if err != nil {
 			return err
 		}
-		admin, err := adminCrud.GetAdminByID(adminID)
+		admin, err := service.adminCrud.GetAdminByID(adminID)
 		if err == nil {
 			admin.Person = input.Person
-			adminCrud.UpdateAdmin(admin)
+			service.adminCrud.UpdateAdmin(admin)
 			return nil
 		} else {
 			return err
@@ -65,11 +66,10 @@ func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint) e
 	}
 }
 
-func (a AdminService) DeleteAdminByID(input input2.LoginInput, adminID uint) error {
-	resp := utils.Login(input.Email, input.Password, a.db)
-	adminCrud := crud.NewAdminCrud(a.db)
+func (a AdminService) DeleteAdminByID(input input2.LoginInput, adminID uint, service AdminService) error {
+	resp := service.utilCrud.Login(input.Email, input.Password)
 	if resp == "admin" {
-		err := adminCrud.DeleteAdminByID(adminID)
+		err := service.adminCrud.DeleteAdminByID(adminID)
 		if err == nil {
 			return nil
 		} else {

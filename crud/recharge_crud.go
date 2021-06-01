@@ -34,30 +34,15 @@ func (r RechargeCrud) UpdateIsPaid(rechargeID uint) error {
 	return err
 }
 
-func (r RechargeCrud) DeleteRechargeByID(rechargeID uint, crud Crud) error {
+func (r RechargeCrud) DeleteRechargeByID(rechargeID uint) error {
 	err := r.db.Table("recharges").Where("id = ?", rechargeID).Delete(&database.Recharge{}).Error
-	if err != nil {
-		return err
-	}
-	err = crud.BilletCrud.DeleteBilletByRechargeID(rechargeID)
 	return err
 }
 
-func (r RechargeCrud) DeleteRechargeByUserID(userID uint, crud Crud) error {
-	recharges, err := crud.RechargeCrud.GetRechargeByUserId(userID)
+func (r RechargeCrud) DeleteRechargeByUserID(userID uint) error {
+	err := r.db.Table("recharges").Where("user_id = ?", userID).Delete(&database.Recharge{}).Error
 	if err != nil {
 		return err
-	}
-	err = r.db.Table("recharges").Where("user_id = ?", userID).Delete(&database.Recharge{}).Error
-	if err != nil {
-		return err
-	}
-
-	for i := range recharges {
-		err := crud.BilletCrud.DeleteBilletByRechargeID(recharges[i].ID)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }

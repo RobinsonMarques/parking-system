@@ -2,6 +2,8 @@ package crud
 
 import (
 	"errors"
+	"go/types"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -13,7 +15,21 @@ type UtilCrud struct {
 	db *gorm.DB
 }
 
-func (u UtilCrud) GetPassword(email string, userType string, crud Crud) (string, error) {
+func NewCrud(userCrud UserCrud, adminCrud AdminCrud, trafficWardenCrud TrafficWardenCrud) Crud {
+	return Crud{
+		UserCrud:          userCrud,
+		AdminCrud:         adminCrud,
+		TrafficWardenCrud: trafficWardenCrud,
+	}
+}
+
+type Crud struct {
+	UserCrud          UserCrud
+	AdminCrud         AdminCrud
+	TrafficWardenCrud TrafficWardenCrud
+}
+
+func GetPassword(email string, userType string, crud Crud) (string, error) {
 	if userType == "user" {
 		user, err := crud.UserCrud.GetUserByEmail(email)
 		if err != nil {
@@ -41,26 +57,29 @@ func (u UtilCrud) GetPassword(email string, userType string, crud Crud) (string,
 
 func (u UtilCrud) Login(email string, password string) string {
 	response := ""
-	crud := crud.NewCrud(db)
-	user, _ := crud.UserCrud.GetUserByEmail(email)
-	admin, _ := crud.AdminCrud.GetAdminByEmail(email)
-	warden, _ := crud.TrafficWardenCrud.GetTrafficWardenByEmail(email)
+	userCrud := NewUserCrud(u.db)
+	adminCrud := NewAdminCrud(u.db)
+	trafficWardenCrud := NewTrafficWardenCrud(u.db)
+	crud := NewCrud(userCrud, adminCrud, trafficWardenCrud)
+	user, _ := userCrud.GetUserByEmail(email)
+	admin, _ := adminCrud.GetAdminByEmail(email)
+	warden, _ := trafficWardenCrud.GetTrafficWardenByEmail(email)
 	if user.Person.Name != "" {
-		err := ComparePassword(password, email, "user", db)
+		err := ComparePassword(password, email, "user", crud)
 		if err == nil {
 			response = "user"
 		} else {
 			response = "Senha inválida!"
 		}
 	} else if admin.Person.Name != "" {
-		err := ComparePassword(password, email, "admin", db)
+		err := ComparePassword(password, email, "admin", crud)
 		if err == nil {
 			response = "admin"
 		} else {
 			response = "Senha inválida"
 		}
 	} else if warden.Person.Name != "" {
-		err := ComparePassword(password, email, "trafficWarden", db)
+		err := ComparePassword(password, email, "trafficWarden", crud)
 		if err == nil {
 			response = "trafficWarden"
 		} else {
@@ -71,4 +90,36 @@ func (u UtilCrud) Login(email string, password string) string {
 	}
 
 	return response
+}
+
+func ComparePassword(password string, userEmail string, userType string, crud Crud) error {
+	var err error
+	if userType == "user" {
+		userPassword, err := GetPassword(userEmail, userType, crud)
+		hashedPassword := []byte(userPassword)
+		bytePassword := []byte(password)
+		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
+		return err
+	} else if userType == "admin" {
+		adminPassword, err := GetPassword(userEmail, userType, crud)
+		if err != nil {
+			return err
+		}
+		hashedPassword := []byte(adminPassword)
+		bytePassword := []byte(password)
+		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
+		return err
+	} else if userType == "trafficWarden" {
+		wardenPassword, err := GetPassword(userEmail, userType, crud)
+		if err != nil {
+			return err
+		}
+		hashedPassword := []byte(wardenPassword)
+		bytePassword := []byte(password)
+		err = bcrypt.CompareHashAndPassword(hashedPassword, bytePassword)
+		return err
+	} else {
+		err = types.Error{Msg: "Tipo de usuário inválido"}
+		return err
+	}
 }

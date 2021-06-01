@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,9 @@ type TrafficWardenManager struct {
 }
 
 func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
+	trafficWardenCrud := crud.NewTrafficWardenCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
 	//Valida o input
 	var input input2.CreateTrafficWarden
 
@@ -25,8 +29,7 @@ func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	trafficWardenService := services.NewTrafficWardenService(a.db)
-	err := trafficWardenService.CreateTrafficWarden(input)
+	err := trafficWardenService.CreateTrafficWarden(input, trafficWardenService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito criado"})
 	} else {
@@ -35,6 +38,10 @@ func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
 }
 
 func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
+	trafficWardenCrud := crud.NewTrafficWardenCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
+
 	wardenIDString := c.Param("wardenID")
 	wardenIDInt, _ := strconv.Atoi(wardenIDString)
 	wardenID := uint(wardenIDInt)
@@ -44,8 +51,7 @@ func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	trafficWardenService := services.NewTrafficWardenService(a.db)
-	err := trafficWardenService.UpdateTrafficWarden(input, wardenID)
+	err := trafficWardenService.UpdateTrafficWarden(input, wardenID, trafficWardenService)
 
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito alterado"})
@@ -55,6 +61,10 @@ func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
 }
 
 func (a TrafficWardenManager) DeleteTrafficWardenByID(c *gin.Context) {
+	trafficWardenCrud := crud.NewTrafficWardenCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
+
 	wardenIDString := c.Param("trafficwardenID")
 	wardenIDInt, _ := strconv.Atoi(wardenIDString)
 	wardenID := uint(wardenIDInt)
@@ -64,8 +74,8 @@ func (a TrafficWardenManager) DeleteTrafficWardenByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	trafficWardenService := services.NewTrafficWardenService(a.db)
-	err := trafficWardenService.DeleteTrafficWardenByID(input, wardenID)
+
+	err := trafficWardenService.DeleteTrafficWardenByID(input, wardenID, trafficWardenService)
 
 	if err == nil {
 		c.JSON(http.StatusOK, "Guarda deletado com sucesso!")

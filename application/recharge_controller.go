@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/RobinsonMarques/parking-system/utils"
@@ -41,11 +42,16 @@ func (a RechargeController) CreateRecharge(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	rechargeCrud := crud.NewRechargeCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetCrud := crud.NewBilletCrud(a.db)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.CreateRecharge(input, url)
+		err = rechargeService.CreateRecharge(input, url, rechargeService)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
 		} else {
@@ -61,11 +67,15 @@ func (a RechargeController) GetRechargesStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	rechargeCrud := crud.NewRechargeCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetCrud := crud.NewBilletCrud(a.db)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.GetRechargeStatus(input)
+		err = rechargeService.GetRechargeStatus(input, rechargeService)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Saldo alterado"})
 		} else {
@@ -85,15 +95,19 @@ func (a RechargeController) DeleteRechargeByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	rechargeService, err := services.NewRechargeService(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	rechargeCrud := crud.NewRechargeCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetCrud := crud.NewBilletCrud(a.db)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
-	}
-	err = rechargeService.DeleteRechargeByID(input, rechargeID)
-	if err == nil {
-		c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+		err = rechargeService.DeleteRechargeByID(input, rechargeID, rechargeService)
+		if err == nil {
+			c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+		}
 	}
 }

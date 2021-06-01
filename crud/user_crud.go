@@ -65,8 +65,9 @@ func (u UserCrud) UpdateUser(user database.User) error {
 
 }
 
-func (u UserCrud) UpdateBalance(email string, extra float64, crud Crud) error {
-	balance, err := crud.UserCrud.GetBalance(email, crud.UserCrud)
+func (u UserCrud) UpdateBalance(email string, extra float64) error {
+	userCrud := NewUserCrud(u.db)
+	balance, err := userCrud.GetBalance(email, userCrud)
 	if err != nil {
 		return err
 	}
@@ -74,16 +75,8 @@ func (u UserCrud) UpdateBalance(email string, extra float64, crud Crud) error {
 	return err
 }
 
-func (u UserCrud) DeleteUserByID(userID uint, crud Crud) error {
+func (u UserCrud) DeleteUserByID(userID uint) error {
 	err := u.db.Table("users").Where("id = ?", userID).Delete(&database.User{}).Error
-	if err != nil {
-		return err
-	}
-	err = crud.VehicleCrud.DeleteVehiclesByUserID(userID)
-	if err != nil {
-		return err
-	}
-	err = crud.RechargeCrud.DeleteRechargeByUserID(userID, crud)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,10 @@ type BilletManager struct {
 }
 
 func (a BilletManager) DeleteBilletByID(c *gin.Context) {
+	billetCrud := crud.NewBilletCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetService := services.NewBilletService(billetCrud, utilCrud)
+
 	billetIDString := c.Param("billetID")
 	billetIDInt, _ := strconv.Atoi(billetIDString)
 	billetID := uint(billetIDInt)
@@ -27,8 +32,8 @@ func (a BilletManager) DeleteBilletByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	billetService := services.NewBilletService(a.db)
-	err := billetService.DeleteBilletByID(input, billetID)
+
+	err := billetService.DeleteBilletByID(input, billetID, billetService)
 
 	if err == nil {
 		c.JSON(http.StatusOK, "Boleto deletado com sucesso!")

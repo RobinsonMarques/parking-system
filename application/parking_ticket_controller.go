@@ -1,30 +1,38 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-func NewParkingTicketManager(db *gorm.DB) ParkingTicketManager {
-	return ParkingTicketManager{db: db}
+func NewParkingTicketManager(parkingTicketCrud crud.ParkingTicketCrud, vehicleCrud crud.VehicleCrud, userCrud crud.UserCrud, utilCrud crud.UtilCrud) ParkingTicketManager {
+	return ParkingTicketManager{
+		parkingTicketCrud: parkingTicketCrud,
+		vehicleCrud:       vehicleCrud,
+		userCrud:          userCrud,
+		utilCrud:          utilCrud,
+	}
 }
 
 type ParkingTicketManager struct {
-	db *gorm.DB
+	parkingTicketCrud crud.ParkingTicketCrud
+	vehicleCrud       crud.VehicleCrud
+	userCrud          crud.UserCrud
+	utilCrud          crud.UtilCrud
 }
 
 func (a ParkingTicketManager) CreateParkingTicket(c *gin.Context) {
+	parkingTicketService := services.NewParkingTicketService(a.parkingTicketCrud, a.vehicleCrud, a.userCrud, a.utilCrud)
 	var input input2.CreateParkingTicket
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	parkingTicketService := services.NewParkingTicketService(a.db)
-	err := parkingTicketService.CreateParkingTicket(input)
+	err := parkingTicketService.CreateParkingTicket(input, parkingTicketService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Ticket criado"})
 	} else {
@@ -33,6 +41,7 @@ func (a ParkingTicketManager) CreateParkingTicket(c *gin.Context) {
 }
 
 func (a ParkingTicketManager) DeleteParkingTicketByID(c *gin.Context) {
+	parkingTicketService := services.NewParkingTicketService(a.parkingTicketCrud, a.vehicleCrud, a.userCrud, a.utilCrud)
 	ticketIDString := c.Param("ticketID")
 	ticketIDInt, _ := strconv.Atoi(ticketIDString)
 	ticketID := uint(ticketIDInt)
@@ -42,8 +51,7 @@ func (a ParkingTicketManager) DeleteParkingTicketByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	parkingTicketService := services.NewParkingTicketService(a.db)
-	err := parkingTicketService.DeleteParkingTicketByID(input, ticketID)
+	err := parkingTicketService.DeleteParkingTicketByID(input, ticketID, parkingTicketService)
 	if err == nil {
 		c.JSON(http.StatusOK, "Usuário deletado com sucesso!")
 	} else {

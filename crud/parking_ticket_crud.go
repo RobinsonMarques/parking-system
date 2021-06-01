@@ -36,6 +36,7 @@ func (p ParkingTicketCrud) DeleteParkingTicketByID(parkingTicketID uint) error {
 	return err
 }
 
-func (p ParkingTicketCrud) DeleteParkingTicketByVehicleID(vehicleId uint) {
-	p.db.Table("parking_tickets").Where("vehicle_id = ?", vehicleId).Delete(&database.ParkingTicket{})
+func (p ParkingTicketCrud) DeleteParkingTicketByVehicleID(vehicleId uint) error {
+	err := p.db.Table("parking_tickets").Where("vehicle_id = ?", vehicleId).Delete(&database.ParkingTicket{}).Error
+	return err
 }

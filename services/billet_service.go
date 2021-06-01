@@ -4,23 +4,24 @@ import (
 	"errors"
 	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
-	"github.com/RobinsonMarques/parking-system/utils"
-	"gorm.io/gorm"
 )
 
-func NewBilletService(db *gorm.DB) BilletService {
-	return BilletService{db: db}
+func NewBilletService(billetCrud crud.BilletCrud, utilCrud crud.UtilCrud) BilletService {
+	return BilletService{
+		billetCrud: billetCrud,
+		utilCrud:   utilCrud,
+	}
 }
 
 type BilletService struct {
-	db *gorm.DB
+	billetCrud crud.BilletCrud
+	utilCrud   crud.UtilCrud
 }
 
-func (b BilletService) DeleteBilletByID(input input2.LoginInput, billetID uint) error {
-	resp := utils.Login(input.Email, input.Password, b.db)
-	billetCrud := crud.NewBilletCrud(b.db)
+func (b BilletService) DeleteBilletByID(input input2.LoginInput, billetID uint, service BilletService) error {
+	resp := service.utilCrud.Login(input.Email, input.Password)
 	if resp == "admin" {
-		err := billetCrud.DeleteBilletByID(billetID)
+		err := service.billetCrud.DeleteBilletByID(billetID)
 		if err == nil {
 			return nil
 		} else {

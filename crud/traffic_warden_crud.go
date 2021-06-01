@@ -24,6 +24,13 @@ func (t TrafficWardenCrud) GetTrafficWardenByEmail(email string) (database.Traff
 	return trafficWarden, err
 }
 
+func (t TrafficWardenCrud) GetTrafficWardenByID(id uint) (database.TrafficWarden, error) {
+	var trafficWarden database.TrafficWarden
+
+	err := t.db.Where("id = ?", id).First(&trafficWarden).Error
+	return trafficWarden, err
+}
+
 func (t TrafficWardenCrud) UpdateTrafficWarden(trafficWarden database.TrafficWarden) error {
 	err := t.db.Table("traffic_wardens").Where("id = ?", trafficWarden.ID).Update("name", trafficWarden.Person.Name).Error
 	if err != nil {
