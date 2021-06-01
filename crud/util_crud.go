@@ -4,15 +4,20 @@ import (
 	"errors"
 	"go/types"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
-func NewUtilCrud(db *gorm.DB) UtilCrud {
-	return UtilCrud{db: db}
+func NewUtilCrud(userCrud UserCrud, adminCrud AdminCrud, trafficWardenCrud TrafficWardenCrud) UtilCrud {
+	return UtilCrud{
+		userCrud:          userCrud,
+		adminCrud:         adminCrud,
+		trafficWardenCrud: trafficWardenCrud,
+	}
 }
 
 type UtilCrud struct {
-	db *gorm.DB
+	userCrud          UserCrud
+	adminCrud         AdminCrud
+	trafficWardenCrud TrafficWardenCrud
 }
 
 func NewCrud(userCrud UserCrud, adminCrud AdminCrud, trafficWardenCrud TrafficWardenCrud) Crud {
@@ -57,13 +62,10 @@ func GetPassword(email string, userType string, crud Crud) (string, error) {
 
 func (u UtilCrud) Login(email string, password string) string {
 	response := ""
-	userCrud := NewUserCrud(u.db)
-	adminCrud := NewAdminCrud(u.db)
-	trafficWardenCrud := NewTrafficWardenCrud(u.db)
-	crud := NewCrud(userCrud, adminCrud, trafficWardenCrud)
-	user, _ := userCrud.GetUserByEmail(email)
-	admin, _ := adminCrud.GetAdminByEmail(email)
-	warden, _ := trafficWardenCrud.GetTrafficWardenByEmail(email)
+	crud := NewCrud(u.userCrud, u.adminCrud, u.trafficWardenCrud)
+	user, _ := u.userCrud.GetUserByEmail(email)
+	admin, _ := u.adminCrud.GetAdminByEmail(email)
+	warden, _ := u.trafficWardenCrud.GetTrafficWardenByEmail(email)
 	if user.Person.Name != "" {
 		err := ComparePassword(password, email, "user", crud)
 		if err == nil {

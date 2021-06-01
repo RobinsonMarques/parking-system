@@ -5,23 +5,24 @@ import (
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-func NewAdminController(db *gorm.DB) AdminController {
-	return AdminController{db: db}
+func NewAdminController(adminCrud crud.AdminCrud, utilCrud crud.UtilCrud) AdminController {
+	return AdminController{
+		adminCrud: adminCrud,
+		utilCrud:  utilCrud,
+	}
 }
 
 type AdminController struct {
-	db *gorm.DB
+	adminCrud crud.AdminCrud
+	utilCrud  crud.UtilCrud
 }
 
 func (a AdminController) CreateAdmin(c *gin.Context) {
-	adminCrud := crud.NewAdminCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	adminService := services.NewAdminService(adminCrud, utilCrud)
+	adminService := services.NewAdminService(a.adminCrud, a.utilCrud)
 	//Valida o input
 	var input input2.CreateAdminInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -37,9 +38,7 @@ func (a AdminController) CreateAdmin(c *gin.Context) {
 }
 
 func (a AdminController) UpdateAdmin(c *gin.Context) {
-	adminCrud := crud.NewAdminCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	adminService := services.NewAdminService(adminCrud, utilCrud)
+	adminService := services.NewAdminService(a.adminCrud, a.utilCrud)
 
 	adminIDString := c.Param("adminID")
 	adminIDInt, _ := strconv.Atoi(adminIDString)
@@ -59,9 +58,7 @@ func (a AdminController) UpdateAdmin(c *gin.Context) {
 }
 
 func (a AdminController) DeleteAdminByID(c *gin.Context) {
-	adminCrud := crud.NewAdminCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	adminService := services.NewAdminService(adminCrud, utilCrud)
+	adminService := services.NewAdminService(a.adminCrud, a.utilCrud)
 
 	adminIDString := c.Param("adminID")
 	adminIDInt, _ := strconv.Atoi(adminIDString)
