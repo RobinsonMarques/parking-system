@@ -6,20 +6,22 @@ import (
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/utils"
-	"gorm.io/gorm"
 )
 
-func NewTrafficWardenService(db *gorm.DB) TrafficWardenService {
-	return TrafficWardenService{db: db}
+func NewTrafficWardenService(trafficWardenCrud crud.TrafficWardenCrud, utilCrud crud.UtilCrud) TrafficWardenService {
+	return TrafficWardenService{
+		trafficWardenCrud: trafficWardenCrud,
+		utilCrud:          utilCrud,
+	}
 }
 
 type TrafficWardenService struct {
-	db *gorm.DB
+	trafficWardenCrud crud.TrafficWardenCrud
+	utilCrud          crud.UtilCrud
 }
 
-func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWarden) error {
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, t.db)
-
+func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWarden, service TrafficWardenService) error {
+	resp := service.utilCrud.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "admin" {
 		var err error
 		input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
@@ -31,11 +33,11 @@ func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWard
 		warden := database.TrafficWarden{
 			Person: input.Person,
 		}
-		resp := crud.CreateTrafficWarden(warden, t.db)
-		if resp.Data.Error != nil {
+		err = service.trafficWardenCrud.CreateTrafficWarden(warden)
+		if err != nil {
 			return nil
 		} else {
-			return resp.Data.Error
+			return err
 		}
 	} else {
 		err := errors.New(resp)
@@ -43,10 +45,10 @@ func (t TrafficWardenService) CreateTrafficWarden(input input2.CreateTrafficWard
 	}
 }
 
-func (t TrafficWardenService) UpdateTrafficWarden(input input2.UpdateTrafficWarden, wardenID uint) error {
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, t.db)
+func (t TrafficWardenService) UpdateTrafficWarden(input input2.UpdateTrafficWarden, wardenID uint, service TrafficWardenService) error {
+	resp := service.utilCrud.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "trafficWarden" || resp == "admin" {
-		trafficWarden, err := crud.GetTrafficWardenByID(wardenID, t.db)
+		trafficWarden, err := service.trafficWardenCrud.GetTrafficWardenByID(wardenID)
 		if err != nil {
 			return err
 		}
@@ -60,7 +62,10 @@ func (t TrafficWardenService) UpdateTrafficWarden(input input2.UpdateTrafficWard
 				return err
 			}
 			trafficWarden.Person = input.Person
-			crud.UpdateTrafficWarden(trafficWarden, t.db)
+			err = service.trafficWardenCrud.UpdateTrafficWarden(trafficWarden)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	} else {
@@ -69,11 +74,10 @@ func (t TrafficWardenService) UpdateTrafficWarden(input input2.UpdateTrafficWard
 	}
 }
 
-func (t TrafficWardenService) DeleteTrafficWardenByID(input input2.LoginInput, wardenID uint) error {
-	resp := utils.Login(input.Email, input.Password, t.db)
-
+func (t TrafficWardenService) DeleteTrafficWardenByID(input input2.LoginInput, wardenID uint, service TrafficWardenService) error {
+	resp := service.utilCrud.Login(input.Email, input.Password)
 	if resp == "admin" {
-		err := crud.DeleteTrafficWardenByID(wardenID, t.db)
+		err := service.trafficWardenCrud.DeleteTrafficWardenByID(wardenID)
 		if err == nil {
 			return nil
 		} else {

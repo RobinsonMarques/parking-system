@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/RobinsonMarques/parking-system/utils"
@@ -11,7 +12,7 @@ import (
 )
 
 func CreateBearer() (string, error) {
-	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjMxNjQ3NSwianRpIjoiVk9rckZUcmxOMTFzZ1Ffazh6TDRWTE9WRWVZIiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.VPPewOzPaxpHazBxOyA-58zXMI0xE_9R5-zTvBET2kZkbNenONiFz336pPJ0rxv8SbYBItFFW7o9-YMolPknn71gqTAtx0BuPL-la6K8sbK3GtGuavN2P4JK3LtukD0mv0Ehu-HZGC2wgVZIz0kqEXANMS4lfm202GpPp87-jDbhQdnOyVcyEGa3IQ7KWDUFB2TWEH815iToIgHR-1aDbDm9p0ItdNhR65BqomHYv_a7XyW4p40AGtgJ9c67tLhPOTaOMQXlxFOIkdldVYEI0LvmkGiafbJdMqtO0Zx-FNN4HK0p0nwQhFVeEEBt6x0BCghuj1L1JRtAdMR6J2YS3w"
+	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjU2NzUyOCwianRpIjoiTExwM3Fkd1A2eFlQRmU5UjFPandUeDQ5YVc0IiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.dSXDLWgnicqig_nIoNCqrB_WKacLD89AuWLtx0bfVj2TrQDZ5GNNwmsnxF5koGKSCchcO05N_D8kOISE2-2006V2AgADDgGGkiEweNP7gSKVHKZ8n_0_oFjY7-D1J8L9OxZma4OUciSwc4ZsL0WS4YR_VA_OBx5H23re423IYN0fe7Ons-_a8yJSfzJPJmwV1n8MgH_0B0DoyCefURI8YR0UbuTAdAiuoUw5uSmn2Plt8nx_U10bj1ZcjK_pFGsf7xmXX5FznIghxabYMlI8uMDJ7VlIxKMhVjtsb67IU_kXNObLJsU2yeRnoBRMn04r-mcS86iiyda7J4COPJg5bw"
 	var Bearer = "Bearer" + Token
 	Token, err := utils.CreateAccessToken(Bearer, Token)
 	if err != nil {
@@ -41,11 +42,16 @@ func (a RechargeController) CreateRecharge(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	rechargeCrud := crud.NewRechargeCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetCrud := crud.NewBilletCrud(a.db)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.CreateRecharge(input, url)
+		err = rechargeService.CreateRecharge(input, url, rechargeService)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
 		} else {
@@ -61,11 +67,15 @@ func (a RechargeController) GetRechargesStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	rechargeCrud := crud.NewRechargeCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetCrud := crud.NewBilletCrud(a.db)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.GetRechargeStatus(input)
+		err = rechargeService.GetRechargeStatus(input, rechargeService)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Saldo alterado"})
 		} else {
@@ -85,15 +95,19 @@ func (a RechargeController) DeleteRechargeByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	rechargeService, err := services.NewRechargeService(a.db)
+	userCrud := crud.NewUserCrud(a.db)
+	rechargeCrud := crud.NewRechargeCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	billetCrud := crud.NewBilletCrud(a.db)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
-	}
-	err = rechargeService.DeleteRechargeByID(input, rechargeID)
-	if err == nil {
-		c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+		err = rechargeService.DeleteRechargeByID(input, rechargeID, rechargeService)
+		if err == nil {
+			c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
@@ -18,15 +19,16 @@ type AdminController struct {
 }
 
 func (a AdminController) CreateAdmin(c *gin.Context) {
+	adminCrud := crud.NewAdminCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	adminService := services.NewAdminService(adminCrud, utilCrud)
 	//Valida o input
 	var input input2.CreateAdminInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	adminService := services.NewAdminService(a.db)
-	err := adminService.CreateAdmin(input)
-
+	err := adminService.CreateAdmin(input, adminService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Admin criado"})
 	} else {
@@ -35,6 +37,10 @@ func (a AdminController) CreateAdmin(c *gin.Context) {
 }
 
 func (a AdminController) UpdateAdmin(c *gin.Context) {
+	adminCrud := crud.NewAdminCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	adminService := services.NewAdminService(adminCrud, utilCrud)
+
 	adminIDString := c.Param("adminID")
 	adminIDInt, _ := strconv.Atoi(adminIDString)
 	adminID := uint(adminIDInt)
@@ -44,8 +50,7 @@ func (a AdminController) UpdateAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	adminService := services.NewAdminService(a.db)
-	err := adminService.UpdateAdmin(input, adminID)
+	err := adminService.UpdateAdmin(input, adminID, adminService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Admin alterado"})
 	} else {
@@ -54,6 +59,10 @@ func (a AdminController) UpdateAdmin(c *gin.Context) {
 }
 
 func (a AdminController) DeleteAdminByID(c *gin.Context) {
+	adminCrud := crud.NewAdminCrud(a.db)
+	utilCrud := crud.NewUtilCrud(a.db)
+	adminService := services.NewAdminService(adminCrud, utilCrud)
+
 	adminIDString := c.Param("adminID")
 	adminIDInt, _ := strconv.Atoi(adminIDString)
 	adminID := uint(adminIDInt)
@@ -63,8 +72,7 @@ func (a AdminController) DeleteAdminByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	adminService := services.NewAdminService(a.db)
-	err := adminService.DeleteAdminByID(input, adminID)
+	err := adminService.DeleteAdminByID(input, adminID, adminService)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Admin deletado"})
 	} else {

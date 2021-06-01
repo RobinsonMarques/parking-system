@@ -1,16 +1,23 @@
 package application
 
 import (
+	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func NewApplication(db *gorm.DB) (Application, error) {
-	UserManager := NewUserController(db)
+	parkingTicketCrud := crud.NewParkingTicketCrud(db)
+	vehicleCrud := crud.NewVehicleCrud(db)
+	userCrud := crud.NewUserCrud(db)
+	utilCrud := crud.NewUtilCrud(db)
+	billletCrud := crud.NewBilletCrud(db)
+	rechargeCrud := crud.NewRechargeCrud(db)
+	UserManager := NewUserController(userCrud, vehicleCrud, rechargeCrud, billletCrud, utilCrud)
 	AdminManager := NewAdminController(db)
 	TrafficWardenManager := NewTrafficWardenManager(db)
 	VehicleManager := NewVehicleManager(db)
-	ParkingTicketManager := NewParkingTicketManager(db)
+	ParkingTicketManager := NewParkingTicketManager(parkingTicketCrud, vehicleCrud, userCrud, utilCrud)
 	RechargeManager, err := NewRechargeController(db)
 	if err != nil {
 		return Application{}, err

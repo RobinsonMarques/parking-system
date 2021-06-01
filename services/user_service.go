@@ -6,18 +6,27 @@ import (
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/utils"
-	"gorm.io/gorm"
 )
 
-func NewUserService(db *gorm.DB) UserService {
-	return UserService{db: db}
+func NewUserService(userCrud crud.UserCrud, vehicleCrud crud.VehicleCrud, rechargeCrud crud.RechargeCrud, billetCrud crud.BilletCrud, utilCrud crud.UtilCrud) UserService {
+	return UserService{
+		userCrud:     userCrud,
+		vehicleCrud:  vehicleCrud,
+		rechargeCrud: rechargeCrud,
+		billetCrud:   billetCrud,
+		util:         utilCrud,
+	}
 }
 
 type UserService struct {
-	db *gorm.DB
+	userCrud     crud.UserCrud
+	vehicleCrud  crud.VehicleCrud
+	rechargeCrud crud.RechargeCrud
+	billetCrud   crud.BilletCrud
+	util         crud.UtilCrud
 }
 
-func (u UserService) CreateUser(input input2.CreateUserInput) error {
+func (u UserService) CreateUser(input input2.CreateUserInput, service UserService) error {
 	var err error
 	input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
 	if err != nil {
@@ -31,26 +40,25 @@ func (u UserService) CreateUser(input input2.CreateUserInput) error {
 		Recharge: nil,
 		Vehicle:  nil,
 	}
-	resp := crud.CreateUser(user, u.db)
-	if resp.Data.Error != nil {
-		return resp.Data.Error
+	err = service.userCrud.CreateUser(user)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func (u UserService) GetUserByDocument(input input2.LoginInput, document string) (database.User, error) {
-	resp := utils.Login(input.Email, input.Password, u.db)
-
+func (u UserService) GetUserByDocument(input input2.LoginInput, document string, service UserService) (database.User, error) {
+	resp := service.util.Login(input.Email, input.Password)
 	if resp == "admin" {
-		user, err := crud.GetUserByDocument(document, u.db)
+		user, err := service.userCrud.GetUserByDocument(document)
 		if err != nil {
 			return user, err
 		}
-		vehicles, _ := crud.GetVehiclesByUserId(user.ID, u.db)
-		recharges, _ := crud.GetRechargeByUserId(user.ID, u.db)
+		vehicles, _ := service.vehicleCrud.GetVehiclesByUserId(user.ID)
+		recharges, _ := service.rechargeCrud.GetRechargeByUserId(user.ID)
 
 		for i := range recharges {
-			billet, _ := crud.GetBilletByRechargeId(recharges[i].ID, u.db)
+			billet, _ := service.billetCrud.GetBilletByRechargeId(recharges[i].ID)
 			recharges[i].Billet = billet
 		}
 		user.Vehicle = vehicles
@@ -62,11 +70,10 @@ func (u UserService) GetUserByDocument(input input2.LoginInput, document string)
 	return user, err
 }
 
-func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error {
-	resp := utils.Login(input.LoginInput.Email, input.LoginInput.Password, u.db)
-
+func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint, service UserService) error {
+	resp := service.util.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "user" || resp == "admin" {
-		user, err := crud.GetUserByID(userID, u.db)
+		user, err := service.userCrud.GetUserByID(userID)
 		if err != nil {
 			return err
 		}
@@ -81,7 +88,10 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error
 			}
 			user.Person = input.Person
 			user.Document = input.Document
-			crud.UpdateUser(user, u.db)
+			err = service.userCrud.UpdateUser(user)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	} else {
@@ -90,11 +100,10 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error
 	}
 }
 
-func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error {
-	resp := utils.Login(input.Email, input.Password, u.db)
-
+func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint, service UserService) error {
+	resp := service.util.Login(input.Email, input.Password)
 	if resp == "user" || resp == "admin" {
-		user, err := crud.GetUserByEmail(input.Email, u.db)
+		user, err := service.userCrud.GetUserByEmail(input.Email)
 		if err != nil {
 			return err
 		}
@@ -102,7 +111,28 @@ func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error 
 			err := errors.New("usuário não possui permissão")
 			return err
 		} else {
-			crud.DeleteUserByID(userID, u.db)
+			err := service.userCrud.DeleteUserByID(userID)
+			if err != nil {
+				return err
+			}
+			err = service.vehicleCrud.DeleteVehiclesByUserID(userID)
+			if err != nil {
+				return err
+			}
+			err = service.rechargeCrud.DeleteRechargeByUserID(userID)
+			if err != nil {
+				return err
+			}
+			recharges, err := service.rechargeCrud.GetRechargeByUserId(userID)
+			if err != nil {
+				return err
+			}
+			for i := range recharges {
+				err := service.billetCrud.DeleteBilletByRechargeID(recharges[i].ID)
+				if err != nil {
+					return err
+				}
+			}
 			return nil
 		}
 	} else {
