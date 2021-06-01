@@ -10,19 +10,21 @@ func NewApplication(db *gorm.DB) (Application, error) {
 	parkingTicketCrud := crud.NewParkingTicketCrud(db)
 	vehicleCrud := crud.NewVehicleCrud(db)
 	userCrud := crud.NewUserCrud(db)
-	utilCrud := crud.NewUtilCrud(db)
-	billletCrud := crud.NewBilletCrud(db)
+	billetCrud := crud.NewBilletCrud(db)
 	rechargeCrud := crud.NewRechargeCrud(db)
-	UserManager := NewUserController(userCrud, vehicleCrud, rechargeCrud, billletCrud, utilCrud)
-	AdminManager := NewAdminController(db)
-	TrafficWardenManager := NewTrafficWardenManager(db)
-	VehicleManager := NewVehicleManager(db)
+	trafficWardenCrud := crud.NewTrafficWardenCrud(db)
+	adminCrud := crud.NewAdminCrud(db)
+	utilCrud := crud.NewUtilCrud(userCrud, adminCrud, trafficWardenCrud)
+	UserManager := NewUserController(userCrud, vehicleCrud, rechargeCrud, billetCrud, utilCrud)
+	AdminManager := NewAdminController(adminCrud, utilCrud)
+	TrafficWardenManager := NewTrafficWardenManager(trafficWardenCrud, utilCrud)
+	VehicleManager := NewVehicleManager(vehicleCrud, userCrud, parkingTicketCrud, utilCrud)
 	ParkingTicketManager := NewParkingTicketManager(parkingTicketCrud, vehicleCrud, userCrud, utilCrud)
-	RechargeManager, err := NewRechargeController(db)
+	RechargeManager, err := NewRechargeController(userCrud, rechargeCrud, utilCrud, billetCrud)
 	if err != nil {
 		return Application{}, err
 	}
-	BilletManager := NewBilletManager(db)
+	BilletManager := NewBilletManager(billetCrud, utilCrud)
 	return Application{
 		UserManager:          UserManager,
 		AdminManager:         AdminManager,

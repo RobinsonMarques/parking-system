@@ -5,23 +5,25 @@ import (
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-func NewTrafficWardenManager(db *gorm.DB) TrafficWardenManager {
-	return TrafficWardenManager{db: db}
+func NewTrafficWardenManager(trafficWardenCrud crud.TrafficWardenCrud, utilCrud crud.UtilCrud) TrafficWardenManager {
+	return TrafficWardenManager{
+		trafficWardenCrud: trafficWardenCrud,
+		utilCrud:          utilCrud,
+	}
 }
 
 type TrafficWardenManager struct {
-	db *gorm.DB
+	trafficWardenCrud crud.TrafficWardenCrud
+	utilCrud          crud.UtilCrud
 }
 
 func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
-	trafficWardenCrud := crud.NewTrafficWardenCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
+
+	trafficWardenService := services.NewTrafficWardenService(a.trafficWardenCrud, a.utilCrud)
 	//Valida o input
 	var input input2.CreateTrafficWarden
 
@@ -38,9 +40,7 @@ func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
 }
 
 func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
-	trafficWardenCrud := crud.NewTrafficWardenCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
+	trafficWardenService := services.NewTrafficWardenService(a.trafficWardenCrud, a.utilCrud)
 
 	wardenIDString := c.Param("wardenID")
 	wardenIDInt, _ := strconv.Atoi(wardenIDString)
@@ -61,9 +61,7 @@ func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
 }
 
 func (a TrafficWardenManager) DeleteTrafficWardenByID(c *gin.Context) {
-	trafficWardenCrud := crud.NewTrafficWardenCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
+	trafficWardenService := services.NewTrafficWardenService(a.trafficWardenCrud, a.utilCrud)
 
 	wardenIDString := c.Param("trafficwardenID")
 	wardenIDInt, _ := strconv.Atoi(wardenIDString)

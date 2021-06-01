@@ -6,7 +6,6 @@ import (
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
@@ -22,17 +21,25 @@ func CreateBearer() (string, error) {
 	return Bearer, nil
 }
 
-func NewRechargeController(db *gorm.DB) (RechargeController, error) {
+func NewRechargeController(userCrud crud.UserCrud, rechargeCrud crud.RechargeCrud, utilCrud crud.UtilCrud, billetCrud crud.BilletCrud) (RechargeController, error) {
 	Bearer, err := CreateBearer()
 	if err != nil {
 		return RechargeController{}, err
 	}
-	return RechargeController{db: db, Bearer: Bearer}, nil
+	return RechargeController{
+		userCrud:     userCrud,
+		rechargeCrud: rechargeCrud,
+		utilCrud:     utilCrud,
+		billetCrud:   billetCrud,
+		Bearer:       Bearer}, nil
 }
 
 type RechargeController struct {
-	db     *gorm.DB
-	Bearer string
+	userCrud     crud.UserCrud
+	rechargeCrud crud.RechargeCrud
+	utilCrud     crud.UtilCrud
+	billetCrud   crud.BilletCrud
+	Bearer       string
 }
 
 func (a RechargeController) CreateRecharge(c *gin.Context) {
@@ -42,12 +49,7 @@ func (a RechargeController) CreateRecharge(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userCrud := crud.NewUserCrud(a.db)
-	rechargeCrud := crud.NewRechargeCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	billetCrud := crud.NewBilletCrud(a.db)
-	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
-
+	rechargeService, err := services.NewRechargeService(a.rechargeCrud, a.userCrud, a.utilCrud, a.billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
@@ -67,11 +69,7 @@ func (a RechargeController) GetRechargesStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userCrud := crud.NewUserCrud(a.db)
-	rechargeCrud := crud.NewRechargeCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	billetCrud := crud.NewBilletCrud(a.db)
-	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
+	rechargeService, err := services.NewRechargeService(a.rechargeCrud, a.userCrud, a.utilCrud, a.billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
@@ -95,11 +93,7 @@ func (a RechargeController) DeleteRechargeByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userCrud := crud.NewUserCrud(a.db)
-	rechargeCrud := crud.NewRechargeCrud(a.db)
-	utilCrud := crud.NewUtilCrud(a.db)
-	billetCrud := crud.NewBilletCrud(a.db)
-	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
+	rechargeService, err := services.NewRechargeService(a.rechargeCrud, a.userCrud, a.utilCrud, a.billetCrud)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
