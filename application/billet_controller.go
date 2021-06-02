@@ -1,28 +1,28 @@
 package application
 
 import (
-	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
+	"github.com/RobinsonMarques/parking-system/interfaces"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func NewBilletManager(billetCrud crud.BilletCrud, utilCrud crud.UtilCrud) BilletManager {
+func NewBilletManager(billetInterface interfaces.BilletInterface, utilInterface interfaces.UtilInterface) BilletManager {
 	return BilletManager{
-		billetCrud: billetCrud,
-		utilCrud:   utilCrud,
+		billetInterface: billetInterface,
+		utilInterface:   utilInterface,
 	}
 }
 
 type BilletManager struct {
-	billetCrud crud.BilletCrud
-	utilCrud   crud.UtilCrud
+	billetInterface interfaces.BilletInterface
+	utilInterface   interfaces.UtilInterface
 }
 
 func (a BilletManager) DeleteBilletByID(c *gin.Context) {
-	billetService := services.NewBilletService(a.billetCrud, a.utilCrud)
+	billetService := services.NewBilletService(a.billetInterface, a.utilInterface)
 
 	billetIDString := c.Param("billetID")
 	billetIDInt, _ := strconv.Atoi(billetIDString)
@@ -34,7 +34,7 @@ func (a BilletManager) DeleteBilletByID(c *gin.Context) {
 		return
 	}
 
-	err := billetService.DeleteBilletByID(input, billetID, billetService)
+	err := billetService.DeleteBilletByID(input, billetID)
 
 	if err == nil {
 		c.JSON(http.StatusOK, "Boleto deletado com sucesso!")

@@ -2,53 +2,54 @@ package crud
 
 import (
 	"errors"
+	"github.com/RobinsonMarques/parking-system/interfaces"
 	"go/types"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func NewUtilCrud(userCrud UserCrud, adminCrud AdminCrud, trafficWardenCrud TrafficWardenCrud) UtilCrud {
+func NewUtilCrud(userInterface interfaces.UserInterface, adminInterface interfaces.AdminInterface, trafficWardenInterface interfaces.TrafficWardenInterface) UtilCrud {
 	return UtilCrud{
-		userCrud:          userCrud,
-		adminCrud:         adminCrud,
-		trafficWardenCrud: trafficWardenCrud,
+		userInterface:          userInterface,
+		adminInterface:         adminInterface,
+		trafficWardenInterface: trafficWardenInterface,
 	}
 }
 
 type UtilCrud struct {
-	userCrud          UserCrud
-	adminCrud         AdminCrud
-	trafficWardenCrud TrafficWardenCrud
+	userInterface          interfaces.UserInterface
+	adminInterface         interfaces.AdminInterface
+	trafficWardenInterface interfaces.TrafficWardenInterface
 }
 
-func NewCrud(userCrud UserCrud, adminCrud AdminCrud, trafficWardenCrud TrafficWardenCrud) Crud {
+func NewCrud(userInterface interfaces.UserInterface, adminInterface interfaces.AdminInterface, trafficWardenInterface interfaces.TrafficWardenInterface) Crud {
 	return Crud{
-		UserCrud:          userCrud,
-		AdminCrud:         adminCrud,
-		TrafficWardenCrud: trafficWardenCrud,
+		UserInterface:          userInterface,
+		AdminInterface:         adminInterface,
+		TrafficWardenInterface: trafficWardenInterface,
 	}
 }
 
 type Crud struct {
-	UserCrud          UserCrud
-	AdminCrud         AdminCrud
-	TrafficWardenCrud TrafficWardenCrud
+	UserInterface          interfaces.UserInterface
+	AdminInterface         interfaces.AdminInterface
+	TrafficWardenInterface interfaces.TrafficWardenInterface
 }
 
 func GetPassword(email string, userType string, crud Crud) (string, error) {
 	if userType == "user" {
-		user, err := crud.UserCrud.GetUserByEmail(email)
+		user, err := crud.UserInterface.GetUserByEmail(email)
 		if err != nil {
 			return "", err
 		}
 		return user.Person.Password, err
 	} else if userType == "admin" {
-		admin, err := crud.AdminCrud.GetAdminByEmail(email)
+		admin, err := crud.AdminInterface.GetAdminByEmail(email)
 		if err != nil {
 			return "", err
 		}
 		return admin.Person.Password, err
 	} else if userType == "trafficWarden" {
-		trafficWarden, err := crud.TrafficWardenCrud.GetTrafficWardenByEmail(email)
+		trafficWarden, err := crud.TrafficWardenInterface.GetTrafficWardenByEmail(email)
 		if err != nil {
 			return "", err
 		}
@@ -62,10 +63,10 @@ func GetPassword(email string, userType string, crud Crud) (string, error) {
 
 func (u UtilCrud) Login(email string, password string) string {
 	response := ""
-	crud := NewCrud(u.userCrud, u.adminCrud, u.trafficWardenCrud)
-	user, _ := u.userCrud.GetUserByEmail(email)
-	admin, _ := u.adminCrud.GetAdminByEmail(email)
-	warden, _ := u.trafficWardenCrud.GetTrafficWardenByEmail(email)
+	crud := NewCrud(u.userInterface, u.adminInterface, u.trafficWardenInterface)
+	user, _ := u.userInterface.GetUserByEmail(email)
+	admin, _ := u.adminInterface.GetAdminByEmail(email)
+	warden, _ := u.trafficWardenInterface.GetTrafficWardenByEmail(email)
 	if user.Person.Name != "" {
 		err := ComparePassword(password, email, "user", crud)
 		if err == nil {

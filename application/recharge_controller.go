@@ -1,8 +1,8 @@
 package application
 
 import (
-	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
+	"github.com/RobinsonMarques/parking-system/interfaces"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
@@ -11,7 +11,7 @@ import (
 )
 
 func CreateBearer() (string, error) {
-	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjU2NzUyOCwianRpIjoiTExwM3Fkd1A2eFlQRmU5UjFPandUeDQ5YVc0IiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.dSXDLWgnicqig_nIoNCqrB_WKacLD89AuWLtx0bfVj2TrQDZ5GNNwmsnxF5koGKSCchcO05N_D8kOISE2-2006V2AgADDgGGkiEweNP7gSKVHKZ8n_0_oFjY7-D1J8L9OxZma4OUciSwc4ZsL0WS4YR_VA_OBx5H23re423IYN0fe7Ons-_a8yJSfzJPJmwV1n8MgH_0B0DoyCefURI8YR0UbuTAdAiuoUw5uSmn2Plt8nx_U10bj1ZcjK_pFGsf7xmXX5FznIghxabYMlI8uMDJ7VlIxKMhVjtsb67IU_kXNObLJsU2yeRnoBRMn04r-mcS86iiyda7J4COPJg5bw"
+	var Token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJyb2JpbmhvbWFycXVlcy5ybTJAZ21haWwuY29tIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTYyMjY2NjE2NywianRpIjoibEw0OUhkWHVPU3dqMWdFajZ3WVo0RUY1R004IiwiY2xpZW50X2lkIjoiUzNDeUtoT09nQTZMeWx0cSJ9.OHPlcsWNuUBPgzhpsemAkioX6wkHt4_vxxGuBA7SO0-TMjzqG_g9zN-Y72kUO8Qd47Zc8oX1bG9DgAci8XQ5jMqS1HY4MTZcz85ZQ5TlsV4K2QZlmjAl8d1DNmGmS9gTwakMuUW8EoyAWebZ8OM5l_VmNXvvDHEixo9OTJTJj9ZsO2WmlHOPxO0u5-TiKm9YHjtExAtkXTcF24jwzYW1J1sxHNt7r7pp7FSdfWhJWe2bou5KzfYlki_I5BObqc_-n6oL6RtxgfZ-jaZmH3F3lDjPevc_QPKEnH-NunkCMma8u1Z5JP9tv4DZPr075EgsnM-Xi0D-gtg1xKqLenGNYA"
 	var Bearer = "Bearer" + Token
 	Token, err := utils.CreateAccessToken(Bearer, Token)
 	if err != nil {
@@ -21,25 +21,25 @@ func CreateBearer() (string, error) {
 	return Bearer, nil
 }
 
-func NewRechargeController(userCrud crud.UserCrud, rechargeCrud crud.RechargeCrud, utilCrud crud.UtilCrud, billetCrud crud.BilletCrud) (RechargeController, error) {
+func NewRechargeController(rechargeInterface interfaces.RechargeInterface, userInterface interfaces.UserInterface, utilInterface interfaces.UtilInterface, billetInterface interfaces.BilletInterface) (RechargeController, error) {
 	Bearer, err := CreateBearer()
 	if err != nil {
 		return RechargeController{}, err
 	}
 	return RechargeController{
-		userCrud:     userCrud,
-		rechargeCrud: rechargeCrud,
-		utilCrud:     utilCrud,
-		billetCrud:   billetCrud,
-		Bearer:       Bearer}, nil
+		rechargeInterface: rechargeInterface,
+		userInterface:     userInterface,
+		utilInterface:     utilInterface,
+		billetInterface:   billetInterface,
+		Bearer:            Bearer}, nil
 }
 
 type RechargeController struct {
-	userCrud     crud.UserCrud
-	rechargeCrud crud.RechargeCrud
-	utilCrud     crud.UtilCrud
-	billetCrud   crud.BilletCrud
-	Bearer       string
+	rechargeInterface interfaces.RechargeInterface
+	userInterface     interfaces.UserInterface
+	utilInterface     interfaces.UtilInterface
+	billetInterface   interfaces.BilletInterface
+	Bearer            string
 }
 
 func (a RechargeController) CreateRecharge(c *gin.Context) {
@@ -49,11 +49,11 @@ func (a RechargeController) CreateRecharge(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.rechargeCrud, a.userCrud, a.utilCrud, a.billetCrud)
+	rechargeService, err := services.NewRechargeService(a.rechargeInterface, a.userInterface, a.utilInterface, a.billetInterface)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.CreateRecharge(input, url, rechargeService)
+		err = rechargeService.CreateRecharge(input, url)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
 		} else {
@@ -69,11 +69,11 @@ func (a RechargeController) GetRechargesStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.rechargeCrud, a.userCrud, a.utilCrud, a.billetCrud)
+	rechargeService, err := services.NewRechargeService(a.rechargeInterface, a.userInterface, a.utilInterface, a.billetInterface)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.GetRechargeStatus(input, rechargeService)
+		err = rechargeService.GetRechargeStatus(input)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Saldo alterado"})
 		} else {
@@ -93,11 +93,11 @@ func (a RechargeController) DeleteRechargeByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.rechargeCrud, a.userCrud, a.utilCrud, a.billetCrud)
+	rechargeService, err := services.NewRechargeService(a.rechargeInterface, a.userInterface, a.utilInterface, a.billetInterface)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	} else {
-		err = rechargeService.DeleteRechargeByID(input, rechargeID, rechargeService)
+		err = rechargeService.DeleteRechargeByID(input, rechargeID)
 		if err == nil {
 			c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
 		} else {

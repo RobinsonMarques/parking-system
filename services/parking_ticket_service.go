@@ -2,35 +2,35 @@ package services
 
 import (
 	"errors"
-	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
+	"github.com/RobinsonMarques/parking-system/interfaces"
 	"time"
 )
 
-func NewParkingTicketService(parkingTicketCrud crud.ParkingTicketCrud, vehicleCrud crud.VehicleCrud, userCrud crud.UserCrud, utilCrud crud.UtilCrud) ParkingTicketService {
+func NewParkingTicketService(parkingTicketInterface interfaces.ParkingTicketInterface, vehicleInterface interfaces.VehicleInterface, userInterface interfaces.UserInterface, utilInterface interfaces.UtilInterface) ParkingTicketService {
 	return ParkingTicketService{
-		parkingTicketCrud: parkingTicketCrud,
-		vehicleCrud:       vehicleCrud,
-		userCrud:          userCrud,
-		utilCrud:          utilCrud,
+		parkingTicketInterface: parkingTicketInterface,
+		vehicleInterface:       vehicleInterface,
+		userInterface:          userInterface,
+		utilInterface:          utilInterface,
 	}
 }
 
 type ParkingTicketService struct {
-	parkingTicketCrud crud.ParkingTicketCrud
-	vehicleCrud       crud.VehicleCrud
-	userCrud          crud.UserCrud
-	utilCrud          crud.UtilCrud
+	parkingTicketInterface interfaces.ParkingTicketInterface
+	vehicleInterface       interfaces.VehicleInterface
+	userInterface          interfaces.UserInterface
+	utilInterface          interfaces.UtilInterface
 }
 
-func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTicket, service ParkingTicketService) error {
-	resp := service.utilCrud.Login(input.Login.Email, input.Login.Password)
-	resp2, err := service.vehicleCrud.GetVehicleById(input.VehicleID)
+func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTicket) error {
+	resp := p.utilInterface.Login(input.Login.Email, input.Login.Password)
+	resp2, err := p.vehicleInterface.GetVehicleById(input.VehicleID)
 	if err != nil {
 		return err
 	}
-	user, err := service.userCrud.GetUserByEmail(input.Login.Email)
+	user, err := p.userInterface.GetUserByEmail(input.Login.Email)
 	if err != nil {
 		return err
 	}
@@ -50,23 +50,23 @@ func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTick
 							Price:       price,
 							VehicleID:   input.VehicleID,
 						}
-						err := service.parkingTicketCrud.CreateParkingTicket(ticket)
+						err := p.parkingTicketInterface.CreateParkingTicket(ticket)
 						if err != nil {
 							return err
 						}
-						err2 := service.vehicleCrud.UpdateIsParked(input.VehicleID, true)
+						err2 := p.vehicleInterface.UpdateIsParked(input.VehicleID, true)
 						if err2 != nil {
 							return nil
 						}
-						err2 = service.userCrud.UpdateBalance(input.Login.Email, -price)
+						err2 = p.userInterface.UpdateBalance(input.Login.Email, -price)
 						if err2 != nil {
 							return err2
 						}
-						err2 = service.vehicleCrud.UpdateIsActive(input.VehicleID, true)
+						err2 = p.vehicleInterface.UpdateIsActive(input.VehicleID, true)
 						if err2 != nil {
 							return err2
 						}
-						go service.vehicleCrud.AlterVehicleStatus(resp2, input.ParkingTime)
+						go p.vehicleInterface.AlterVehicleStatus(resp2, input.ParkingTime)
 						return nil
 					} else {
 						err := errors.New("saldo insuficiente")
@@ -91,9 +91,9 @@ func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTick
 }
 
 func (p ParkingTicketService) DeleteParkingTicketByID(input input2.LoginInput, ticketID uint, service ParkingTicketService) error {
-	resp := service.utilCrud.Login(input.Email, input.Password)
+	resp := p.utilInterface.Login(input.Email, input.Password)
 	if resp == "admin" {
-		err := service.parkingTicketCrud.DeleteParkingTicketByID(ticketID)
+		err := service.parkingTicketInterface.DeleteParkingTicketByID(ticketID)
 		if err != nil {
 			return err
 		}

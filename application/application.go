@@ -20,7 +20,7 @@ func NewApplication(db *gorm.DB) (Application, error) {
 	TrafficWardenManager := NewTrafficWardenManager(trafficWardenCrud, utilCrud)
 	VehicleManager := NewVehicleManager(vehicleCrud, userCrud, parkingTicketCrud, utilCrud)
 	ParkingTicketManager := NewParkingTicketManager(parkingTicketCrud, vehicleCrud, userCrud, utilCrud)
-	RechargeManager, err := NewRechargeController(userCrud, rechargeCrud, utilCrud, billetCrud)
+	RechargeManager, err := NewRechargeController(rechargeCrud, userCrud, utilCrud, billetCrud)
 	if err != nil {
 		return Application{}, err
 	}
