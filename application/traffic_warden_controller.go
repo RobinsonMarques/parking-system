@@ -2,28 +2,23 @@ package application
 
 import (
 	input2 "github.com/RobinsonMarques/parking-system/input"
-	"github.com/RobinsonMarques/parking-system/interfaces"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func NewTrafficWardenManager(trafficWardenInterface interfaces.TrafficWardenInterface, utilInterface interfaces.UtilInterface) TrafficWardenManager {
+func NewTrafficWardenManager(trafficWardenService services.TrafficWardenService) TrafficWardenManager {
 	return TrafficWardenManager{
-		trafficWardenInterface: trafficWardenInterface,
-		utilInterface:          utilInterface,
+		trafficWardenService: trafficWardenService,
 	}
 }
 
 type TrafficWardenManager struct {
-	trafficWardenInterface interfaces.TrafficWardenInterface
-	utilInterface          interfaces.UtilInterface
+	trafficWardenService services.TrafficWardenService
 }
 
 func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
-
-	trafficWardenService := services.NewTrafficWardenService(a.trafficWardenInterface, a.utilInterface)
 	//Valida o input
 	var input input2.CreateTrafficWarden
 
@@ -31,7 +26,7 @@ func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := trafficWardenService.CreateTrafficWarden(input)
+	err := a.trafficWardenService.CreateTrafficWarden(input)
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito criado"})
 	} else {
@@ -40,8 +35,6 @@ func (a TrafficWardenManager) CreateTrafficWarden(c *gin.Context) {
 }
 
 func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
-	trafficWardenService := services.NewTrafficWardenService(a.trafficWardenInterface, a.utilInterface)
-
 	wardenIDString := c.Param("wardenID")
 	wardenIDInt, _ := strconv.Atoi(wardenIDString)
 	wardenID := uint(wardenIDInt)
@@ -51,7 +44,7 @@ func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := trafficWardenService.UpdateTrafficWarden(input, wardenID)
+	err := a.trafficWardenService.UpdateTrafficWarden(input, wardenID)
 
 	if err == nil {
 		c.JSON(http.StatusOK, gin.H{"Response": "Guarda de trânsito alterado"})
@@ -61,8 +54,6 @@ func (a TrafficWardenManager) UpdateTrafficWarden(c *gin.Context) {
 }
 
 func (a TrafficWardenManager) DeleteTrafficWardenByID(c *gin.Context) {
-	trafficWardenService := services.NewTrafficWardenService(a.trafficWardenInterface, a.utilInterface)
-
 	wardenIDString := c.Param("trafficwardenID")
 	wardenIDInt, _ := strconv.Atoi(wardenIDString)
 	wardenID := uint(wardenIDInt)
@@ -73,7 +64,7 @@ func (a TrafficWardenManager) DeleteTrafficWardenByID(c *gin.Context) {
 		return
 	}
 
-	err := trafficWardenService.DeleteTrafficWardenByID(input, wardenID)
+	err := a.trafficWardenService.DeleteTrafficWardenByID(input, wardenID)
 
 	if err == nil {
 		c.JSON(http.StatusOK, "Guarda deletado com sucesso!")

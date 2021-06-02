@@ -2,41 +2,30 @@ package application
 
 import (
 	input2 "github.com/RobinsonMarques/parking-system/input"
-	"github.com/RobinsonMarques/parking-system/interfaces"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func NewUserController(userInterface interfaces.UserInterface, vehicleInterface interfaces.VehicleInterface, rechargeInterface interfaces.RechargeInterface, billetInterface interfaces.BilletInterface, utilInterface interfaces.UtilInterface) UserController {
+func NewUserController(userService services.UserService) UserController {
 	return UserController{
-		userInterface:     userInterface,
-		vehicleInterface:  vehicleInterface,
-		rechargeInterface: rechargeInterface,
-		billetInterface:   billetInterface,
-		utilInterface:     utilInterface,
+		userService: userService,
 	}
 }
 
 type UserController struct {
-	userInterface     interfaces.UserInterface
-	vehicleInterface  interfaces.VehicleInterface
-	rechargeInterface interfaces.RechargeInterface
-	billetInterface   interfaces.BilletInterface
-	utilInterface     interfaces.UtilInterface
+	userService services.UserService
 }
 
 func (a UserController) CreateUser(c *gin.Context) {
-
-	userService := services.NewUserService(a.userInterface, a.vehicleInterface, a.rechargeInterface, a.billetInterface, a.utilInterface)
 	//Valida o input
 	var input input2.CreateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := userService.CreateUser(input)
+	err := a.userService.CreateUser(input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 		return
@@ -45,15 +34,13 @@ func (a UserController) CreateUser(c *gin.Context) {
 }
 
 func (a UserController) GetUserByDocument(c *gin.Context) {
-	userService := services.NewUserService(a.userInterface, a.vehicleInterface, a.rechargeInterface, a.billetInterface, a.utilInterface)
-
 	document := c.Param("document")
 	var input input2.LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	user, err := userService.GetUserByDocument(input, document)
+	user, err := a.userService.GetUserByDocument(input, document)
 	if err == nil {
 		c.JSON(200, user)
 	} else {
@@ -62,8 +49,6 @@ func (a UserController) GetUserByDocument(c *gin.Context) {
 }
 
 func (a UserController) UpdateUser(c *gin.Context) {
-	userService := services.NewUserService(a.userInterface, a.vehicleInterface, a.rechargeInterface, a.billetInterface, a.utilInterface)
-
 	userIDString := c.Param("userID")
 	userIDInt, _ := strconv.Atoi(userIDString)
 	userID := uint(userIDInt)
@@ -73,7 +58,7 @@ func (a UserController) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := userService.UpdateUser(input, userID)
+	err := a.userService.UpdateUser(input, userID)
 	if err == nil {
 		c.JSON(http.StatusOK, "Usuário alterado com sucesso!")
 	} else {
@@ -82,8 +67,6 @@ func (a UserController) UpdateUser(c *gin.Context) {
 }
 
 func (a UserController) DeleteUserByID(c *gin.Context) {
-	userService := services.NewUserService(a.userInterface, a.vehicleInterface, a.rechargeInterface, a.billetInterface, a.utilInterface)
-
 	userIDString := c.Param("userID")
 	userIDInt, _ := strconv.Atoi(userIDString)
 	userID := uint(userIDInt)
@@ -93,7 +76,7 @@ func (a UserController) DeleteUserByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := userService.DeleteUserByID(input, userID)
+	err := a.userService.DeleteUserByID(input, userID)
 	if err == nil {
 		c.JSON(http.StatusOK, "Usuário deletado com sucesso!")
 	} else {

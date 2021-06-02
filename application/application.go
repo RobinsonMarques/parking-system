@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/RobinsonMarques/parking-system/crud"
+	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -14,17 +15,27 @@ func NewApplication(db *gorm.DB) (Application, error) {
 	rechargeCrud := crud.NewRechargeCrud(db)
 	trafficWardenCrud := crud.NewTrafficWardenCrud(db)
 	adminCrud := crud.NewAdminCrud(db)
-	utilCrud := crud.NewUtilCrud(userCrud, adminCrud, trafficWardenCrud)
-	UserManager := NewUserController(userCrud, vehicleCrud, rechargeCrud, billetCrud, utilCrud)
-	AdminManager := NewAdminController(adminCrud, utilCrud)
-	TrafficWardenManager := NewTrafficWardenManager(trafficWardenCrud, utilCrud)
-	VehicleManager := NewVehicleManager(vehicleCrud, userCrud, parkingTicketCrud, utilCrud)
-	ParkingTicketManager := NewParkingTicketManager(parkingTicketCrud, vehicleCrud, userCrud, utilCrud)
-	RechargeManager, err := NewRechargeController(rechargeCrud, userCrud, utilCrud, billetCrud)
+	utilCrud := services.NewUtilCrud(userCrud, adminCrud, trafficWardenCrud)
+	adminService := services.NewAdminService(adminCrud, utilCrud)
+	billetService := services.NewBilletService(billetCrud, utilCrud)
+	userService := services.NewUserService(userCrud, vehicleCrud, rechargeCrud, billetCrud, utilCrud)
+	trafficWardenService := services.NewTrafficWardenService(trafficWardenCrud, utilCrud)
+	vehicleService := services.NewVehicleService(vehicleCrud, userCrud, parkingTicketCrud, utilCrud)
+	parkingTicketService := services.NewParkingTicketService(parkingTicketCrud, vehicleCrud, userCrud, utilCrud)
+	rechargeService, err := services.NewRechargeService(rechargeCrud, userCrud, utilCrud, billetCrud)
 	if err != nil {
 		return Application{}, err
 	}
-	BilletManager := NewBilletManager(billetCrud, utilCrud)
+	UserManager := NewUserController(userService)
+	AdminManager := NewAdminController(adminService)
+	TrafficWardenManager := NewTrafficWardenManager(trafficWardenService)
+	VehicleManager := NewVehicleManager(vehicleService)
+	ParkingTicketManager := NewParkingTicketManager(parkingTicketService)
+	RechargeManager, err := NewRechargeController(rechargeService)
+	if err != nil {
+		return Application{}, err
+	}
+	BilletManager := NewBilletManager(billetService)
 	return Application{
 		UserManager:          UserManager,
 		AdminManager:         AdminManager,

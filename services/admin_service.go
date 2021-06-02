@@ -44,7 +44,7 @@ func (a AdminService) CreateAdmin(input input2.CreateAdminInput) error {
 	}
 }
 
-func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint, service AdminService) error {
+func (a AdminService) UpdateAdmin(input input2.UpdateAdminInput, adminID uint) error {
 	resp := a.utilInterface.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "admin" {
 		var err error

@@ -90,10 +90,10 @@ func (p ParkingTicketService) CreateParkingTicket(input input2.CreateParkingTick
 	}
 }
 
-func (p ParkingTicketService) DeleteParkingTicketByID(input input2.LoginInput, ticketID uint, service ParkingTicketService) error {
+func (p ParkingTicketService) DeleteParkingTicketByID(input input2.LoginInput, ticketID uint) error {
 	resp := p.utilInterface.Login(input.Email, input.Password)
 	if resp == "admin" {
-		err := service.parkingTicketInterface.DeleteParkingTicketByID(ticketID)
+		err := p.parkingTicketInterface.DeleteParkingTicketByID(ticketID)
 		if err != nil {
 			return err
 		}

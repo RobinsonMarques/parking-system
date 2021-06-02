@@ -2,7 +2,6 @@ package application
 
 import (
 	input2 "github.com/RobinsonMarques/parking-system/input"
-	"github.com/RobinsonMarques/parking-system/interfaces"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/RobinsonMarques/parking-system/utils"
 	"github.com/gin-gonic/gin"
@@ -21,25 +20,19 @@ func CreateBearer() (string, error) {
 	return Bearer, nil
 }
 
-func NewRechargeController(rechargeInterface interfaces.RechargeInterface, userInterface interfaces.UserInterface, utilInterface interfaces.UtilInterface, billetInterface interfaces.BilletInterface) (RechargeController, error) {
+func NewRechargeController(rechargeService services.RechargeService) (RechargeController, error) {
 	Bearer, err := CreateBearer()
 	if err != nil {
 		return RechargeController{}, err
 	}
 	return RechargeController{
-		rechargeInterface: rechargeInterface,
-		userInterface:     userInterface,
-		utilInterface:     utilInterface,
-		billetInterface:   billetInterface,
-		Bearer:            Bearer}, nil
+		rechargeService: rechargeService,
+		Bearer:          Bearer}, nil
 }
 
 type RechargeController struct {
-	rechargeInterface interfaces.RechargeInterface
-	userInterface     interfaces.UserInterface
-	utilInterface     interfaces.UtilInterface
-	billetInterface   interfaces.BilletInterface
-	Bearer            string
+	rechargeService services.RechargeService
+	Bearer          string
 }
 
 func (a RechargeController) CreateRecharge(c *gin.Context) {
@@ -49,18 +42,12 @@ func (a RechargeController) CreateRecharge(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.rechargeInterface, a.userInterface, a.utilInterface, a.billetInterface)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+	err := a.rechargeService.CreateRecharge(input, url)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
 	} else {
-		err = rechargeService.CreateRecharge(input, url)
-		if err == nil {
-			c.JSON(http.StatusOK, gin.H{"Response": "Recarga criada"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
-
 }
 
 func (a RechargeController) GetRechargesStatus(c *gin.Context) {
@@ -69,18 +56,12 @@ func (a RechargeController) GetRechargesStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.rechargeInterface, a.userInterface, a.utilInterface, a.billetInterface)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+	err := a.rechargeService.GetRechargeStatus(input)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"Response": "Saldo alterado"})
 	} else {
-		err = rechargeService.GetRechargeStatus(input)
-		if err == nil {
-			c.JSON(http.StatusOK, gin.H{"Response": "Saldo alterado"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
-
 }
 
 func (a RechargeController) DeleteRechargeByID(c *gin.Context) {
@@ -93,15 +74,10 @@ func (a RechargeController) DeleteRechargeByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	rechargeService, err := services.NewRechargeService(a.rechargeInterface, a.userInterface, a.utilInterface, a.billetInterface)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
+	err := a.rechargeService.DeleteRechargeByID(input, rechargeID)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
 	} else {
-		err = rechargeService.DeleteRechargeByID(input, rechargeID)
-		if err == nil {
-			c.JSON(http.StatusOK, gin.H{"Response": "Recarga deletada"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"Response": err.Error()})
 	}
 }
