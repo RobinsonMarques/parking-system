@@ -2,31 +2,31 @@ package services
 
 import (
 	"errors"
-	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
+	"github.com/RobinsonMarques/parking-system/interfaces"
 )
 
-func NewVehicleService(VehicleCrud crud.VehicleCrud, UserCrud crud.UserCrud, ParkingTicketCrud crud.ParkingTicketCrud, UtilCrud crud.UtilCrud) VehicleService {
+func NewVehicleService(VehicleInterface interfaces.VehicleInterface, UserInterface interfaces.UserInterface, ParkingTicketInterface interfaces.ParkingTicketInterface, UtilInterface interfaces.UtilInterface) VehicleService {
 	return VehicleService{
-		vehicleCrud:       VehicleCrud,
-		userCrud:          UserCrud,
-		parkingTicketCrud: ParkingTicketCrud,
-		util:              UtilCrud,
+		vehicleInterface:       VehicleInterface,
+		userInterface:          UserInterface,
+		parkingTicketInterface: ParkingTicketInterface,
+		utilInterface:          UtilInterface,
 	}
 }
 
 type VehicleService struct {
-	vehicleCrud       crud.VehicleCrud
-	userCrud          crud.UserCrud
-	parkingTicketCrud crud.ParkingTicketCrud
-	util              crud.UtilCrud
+	vehicleInterface       interfaces.VehicleInterface
+	userInterface          interfaces.UserInterface
+	parkingTicketInterface interfaces.ParkingTicketInterface
+	utilInterface          interfaces.UtilInterface
 }
 
-func (v VehicleService) GetAllVehicles(input input2.LoginInput, service VehicleService) ([]database.Vehicle, error) {
-	resp := service.util.Login(input.Email, input.Password)
+func (v VehicleService) GetAllVehicles(input input2.LoginInput) ([]database.Vehicle, error) {
+	resp := v.utilInterface.Login(input.Email, input.Password)
 	if resp == "trafficWarden" || resp == "admin" {
-		vehicles, err := service.vehicleCrud.GetAllVehicles()
+		vehicles, err := v.vehicleInterface.GetAllVehicles()
 		if err != nil {
 			return []database.Vehicle{}, err
 		}
@@ -37,8 +37,8 @@ func (v VehicleService) GetAllVehicles(input input2.LoginInput, service VehicleS
 	}
 }
 
-func (v VehicleService) CreateVehicle(input input2.CreateVehicle, service VehicleService) error {
-	_, err := service.userCrud.GetUserByID(input.UserID)
+func (v VehicleService) CreateVehicle(input input2.CreateVehicle) error {
+	_, err := v.userInterface.GetUserByID(input.UserID)
 	if err == nil {
 		//Cria o veículo
 		veiculo := database.Vehicle{
@@ -50,7 +50,7 @@ func (v VehicleService) CreateVehicle(input input2.CreateVehicle, service Vehicl
 			UserID:        input.UserID,
 			ParkingTicket: nil,
 		}
-		err := service.vehicleCrud.CreateVehicle(veiculo)
+		err := v.vehicleInterface.CreateVehicle(veiculo)
 		if err == nil {
 			return nil
 		} else {
@@ -62,14 +62,14 @@ func (v VehicleService) CreateVehicle(input input2.CreateVehicle, service Vehicl
 	}
 }
 
-func (v VehicleService) GetVehicleByLicensePlate(input input2.LoginInput, licensePlate string, service VehicleService) (database.Vehicle, error) {
-	resp := service.util.Login(input.Email, input.Password)
+func (v VehicleService) GetVehicleByLicensePlate(input input2.LoginInput, licensePlate string) (database.Vehicle, error) {
+	resp := v.utilInterface.Login(input.Email, input.Password)
 	if resp == "trafficWarden" {
-		vehicle, err := service.vehicleCrud.GetVehicleByLicensePlate(licensePlate)
+		vehicle, err := v.vehicleInterface.GetVehicleByLicensePlate(licensePlate)
 		if err != nil {
 			return vehicle, err
 		}
-		ticket, err := service.parkingTicketCrud.GetLastParkingTicketFromVehicle(vehicle.ID)
+		ticket, err := v.parkingTicketInterface.GetLastParkingTicketFromVehicle(vehicle.ID)
 		if err != nil {
 			return vehicle, err
 		}
@@ -82,13 +82,13 @@ func (v VehicleService) GetVehicleByLicensePlate(input input2.LoginInput, licens
 	}
 }
 
-func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle, service VehicleService) error {
-	resp := service.util.Login(input.LoginInput.Email, input.LoginInput.Password)
-	user, err := service.userCrud.GetUserByEmail(input.LoginInput.Email)
+func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle) error {
+	resp := v.utilInterface.Login(input.LoginInput.Email, input.LoginInput.Password)
+	user, err := v.userInterface.GetUserByEmail(input.LoginInput.Email)
 	if err != nil {
 		return err
 	}
-	vehicles, err := service.vehicleCrud.GetVehiclesByUserId(user.ID)
+	vehicles, err := v.vehicleInterface.GetVehiclesByUserId(user.ID)
 	if err != nil {
 		return err
 	}
@@ -101,14 +101,14 @@ func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle, service Vehicl
 
 	if resp == "user" {
 		if resp2 {
-			vehicle, err := service.vehicleCrud.GetVehicleByLicensePlate(input.LicensePlate)
+			vehicle, err := v.vehicleInterface.GetVehicleByLicensePlate(input.LicensePlate)
 			if err != nil {
 				return err
 			}
 			vehicle.VehicleModel = input.VehicleModel
 			vehicle.VehicleType = input.VehicleType
 			vehicle.LicensePlate = input.NewLicensePlate
-			err = service.vehicleCrud.UpdateVehicle(vehicle)
+			err = v.vehicleInterface.UpdateVehicle(vehicle)
 			if err != nil {
 				return err
 			}
@@ -123,15 +123,15 @@ func (v VehicleService) UpdateVehicle(input input2.UpdateVehicle, service Vehicl
 	}
 }
 
-func (v VehicleService) UpdateVehicleOwner(input input2.UpdateVehicleOwner, vehicleID uint, service VehicleService) error {
-	resp := service.util.Login(input.LoginInput.Email, input.LoginInput.Password)
-	user, err := service.userCrud.GetUserByID(input.NewUserID)
+func (v VehicleService) UpdateVehicleOwner(input input2.UpdateVehicleOwner, vehicleID uint) error {
+	resp := v.utilInterface.Login(input.LoginInput.Email, input.LoginInput.Password)
+	user, err := v.userInterface.GetUserByID(input.NewUserID)
 	if err != nil {
 		return err
 	}
 	if resp == "admin" {
 		if user.Person.Name != "" {
-			err := service.vehicleCrud.UpdateVehicleOwner(vehicleID, input.NewUserID)
+			err := v.vehicleInterface.UpdateVehicleOwner(vehicleID, input.NewUserID)
 			if err != nil {
 				return err
 			}
@@ -146,14 +146,14 @@ func (v VehicleService) UpdateVehicleOwner(input input2.UpdateVehicleOwner, vehi
 	}
 }
 
-func (v VehicleService) DeleteVehicleByID(input input2.LoginInput, vehicleID uint, service VehicleService) error {
-	resp := service.util.Login(input.Email, input.Password)
+func (v VehicleService) DeleteVehicleByID(input input2.LoginInput, vehicleID uint) error {
+	resp := v.utilInterface.Login(input.Email, input.Password)
 	if resp == "user" || resp == "admin" {
-		vehicle, err := service.vehicleCrud.GetVehicleById(vehicleID)
+		vehicle, err := v.vehicleInterface.GetVehicleById(vehicleID)
 		if err != nil {
 			return err
 		}
-		user, err := service.userCrud.GetUserByEmail(input.Email)
+		user, err := v.userInterface.GetUserByEmail(input.Email)
 		if err != nil {
 			return err
 		}
@@ -161,11 +161,11 @@ func (v VehicleService) DeleteVehicleByID(input input2.LoginInput, vehicleID uin
 			err := errors.New("usuário logado não possui permissão")
 			return err
 		} else {
-			err := service.vehicleCrud.DeleteVehicleByID(vehicleID)
+			err := v.vehicleInterface.DeleteVehicleByID(vehicleID)
 			if err != nil {
 				return err
 			}
-			err = service.parkingTicketCrud.DeleteParkingTicketByVehicleID(vehicleID)
+			err = v.parkingTicketInterface.DeleteParkingTicketByVehicleID(vehicleID)
 			if err != nil {
 				return err
 			}

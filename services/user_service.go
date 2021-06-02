@@ -2,31 +2,31 @@ package services
 
 import (
 	"errors"
-	"github.com/RobinsonMarques/parking-system/crud"
 	"github.com/RobinsonMarques/parking-system/database"
 	input2 "github.com/RobinsonMarques/parking-system/input"
+	"github.com/RobinsonMarques/parking-system/interfaces"
 	"github.com/RobinsonMarques/parking-system/utils"
 )
 
-func NewUserService(userCrud crud.UserCrud, vehicleCrud crud.VehicleCrud, rechargeCrud crud.RechargeCrud, billetCrud crud.BilletCrud, utilCrud crud.UtilCrud) UserService {
+func NewUserService(userInterface interfaces.UserInterface, vehicleInterface interfaces.VehicleInterface, rechargeInterface interfaces.RechargeInterface, billetInterface interfaces.BilletInterface, utilInterface interfaces.UtilInterface) UserService {
 	return UserService{
-		userCrud:     userCrud,
-		vehicleCrud:  vehicleCrud,
-		rechargeCrud: rechargeCrud,
-		billetCrud:   billetCrud,
-		util:         utilCrud,
+		userInterface:     userInterface,
+		vehicleInterface:  vehicleInterface,
+		rechargeInterface: rechargeInterface,
+		billetInterface:   billetInterface,
+		utilInterface:     utilInterface,
 	}
 }
 
 type UserService struct {
-	userCrud     crud.UserCrud
-	vehicleCrud  crud.VehicleCrud
-	rechargeCrud crud.RechargeCrud
-	billetCrud   crud.BilletCrud
-	util         crud.UtilCrud
+	userInterface     interfaces.UserInterface
+	vehicleInterface  interfaces.VehicleInterface
+	rechargeInterface interfaces.RechargeInterface
+	billetInterface   interfaces.BilletInterface
+	utilInterface     interfaces.UtilInterface
 }
 
-func (u UserService) CreateUser(input input2.CreateUserInput, service UserService) error {
+func (u UserService) CreateUser(input input2.CreateUserInput) error {
 	var err error
 	input.Person.Password, err = utils.CreateHashPassword(input.Person.Password)
 	if err != nil {
@@ -40,25 +40,25 @@ func (u UserService) CreateUser(input input2.CreateUserInput, service UserServic
 		Recharge: nil,
 		Vehicle:  nil,
 	}
-	err = service.userCrud.CreateUser(user)
+	err = u.userInterface.CreateUser(user)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u UserService) GetUserByDocument(input input2.LoginInput, document string, service UserService) (database.User, error) {
-	resp := service.util.Login(input.Email, input.Password)
+func (u UserService) GetUserByDocument(input input2.LoginInput, document string) (database.User, error) {
+	resp := u.utilInterface.Login(input.Email, input.Password)
 	if resp == "admin" {
-		user, err := service.userCrud.GetUserByDocument(document)
+		user, err := u.userInterface.GetUserByDocument(document)
 		if err != nil {
 			return user, err
 		}
-		vehicles, _ := service.vehicleCrud.GetVehiclesByUserId(user.ID)
-		recharges, _ := service.rechargeCrud.GetRechargeByUserId(user.ID)
+		vehicles, _ := u.vehicleInterface.GetVehiclesByUserId(user.ID)
+		recharges, _ := u.rechargeInterface.GetRechargeByUserId(user.ID)
 
 		for i := range recharges {
-			billet, _ := service.billetCrud.GetBilletByRechargeId(recharges[i].ID)
+			billet, _ := u.billetInterface.GetBilletByRechargeId(recharges[i].ID)
 			recharges[i].Billet = billet
 		}
 		user.Vehicle = vehicles
@@ -70,10 +70,10 @@ func (u UserService) GetUserByDocument(input input2.LoginInput, document string,
 	return user, err
 }
 
-func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint, service UserService) error {
-	resp := service.util.Login(input.LoginInput.Email, input.LoginInput.Password)
+func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint) error {
+	resp := u.utilInterface.Login(input.LoginInput.Email, input.LoginInput.Password)
 	if resp == "user" || resp == "admin" {
-		user, err := service.userCrud.GetUserByID(userID)
+		user, err := u.userInterface.GetUserByID(userID)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint, servi
 			}
 			user.Person = input.Person
 			user.Document = input.Document
-			err = service.userCrud.UpdateUser(user)
+			err = u.userInterface.UpdateUser(user)
 			if err != nil {
 				return err
 			}
@@ -100,10 +100,10 @@ func (u UserService) UpdateUser(input input2.UpdateUserInput, userID uint, servi
 	}
 }
 
-func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint, service UserService) error {
-	resp := service.util.Login(input.Email, input.Password)
+func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint) error {
+	resp := u.utilInterface.Login(input.Email, input.Password)
 	if resp == "user" || resp == "admin" {
-		user, err := service.userCrud.GetUserByEmail(input.Email)
+		user, err := u.userInterface.GetUserByEmail(input.Email)
 		if err != nil {
 			return err
 		}
@@ -111,24 +111,24 @@ func (u UserService) DeleteUserByID(input input2.LoginInput, userID uint, servic
 			err := errors.New("usuário não possui permissão")
 			return err
 		} else {
-			err := service.userCrud.DeleteUserByID(userID)
+			err := u.userInterface.DeleteUserByID(userID)
 			if err != nil {
 				return err
 			}
-			err = service.vehicleCrud.DeleteVehiclesByUserID(userID)
+			err = u.vehicleInterface.DeleteVehiclesByUserID(userID)
 			if err != nil {
 				return err
 			}
-			err = service.rechargeCrud.DeleteRechargeByUserID(userID)
+			err = u.rechargeInterface.DeleteRechargeByUserID(userID)
 			if err != nil {
 				return err
 			}
-			recharges, err := service.rechargeCrud.GetRechargeByUserId(userID)
+			recharges, err := u.rechargeInterface.GetRechargeByUserId(userID)
 			if err != nil {
 				return err
 			}
 			for i := range recharges {
-				err := service.billetCrud.DeleteBilletByRechargeID(recharges[i].ID)
+				err := u.billetInterface.DeleteBilletByRechargeID(recharges[i].ID)
 				if err != nil {
 					return err
 				}

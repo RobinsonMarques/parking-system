@@ -1,7 +1,6 @@
 package application
 
 import (
-	"github.com/RobinsonMarques/parking-system/crud"
 	input2 "github.com/RobinsonMarques/parking-system/input"
 	"github.com/RobinsonMarques/parking-system/services"
 	"github.com/gin-gonic/gin"
@@ -9,21 +8,17 @@ import (
 	"strconv"
 )
 
-func NewBilletManager(billetCrud crud.BilletCrud, utilCrud crud.UtilCrud) BilletManager {
+func NewBilletManager(billetService services.BilletService) BilletManager {
 	return BilletManager{
-		billetCrud: billetCrud,
-		utilCrud:   utilCrud,
+		billetService: billetService,
 	}
 }
 
 type BilletManager struct {
-	billetCrud crud.BilletCrud
-	utilCrud   crud.UtilCrud
+	billetService services.BilletService
 }
 
 func (a BilletManager) DeleteBilletByID(c *gin.Context) {
-	billetService := services.NewBilletService(a.billetCrud, a.utilCrud)
-
 	billetIDString := c.Param("billetID")
 	billetIDInt, _ := strconv.Atoi(billetIDString)
 	billetID := uint(billetIDInt)
@@ -34,7 +29,7 @@ func (a BilletManager) DeleteBilletByID(c *gin.Context) {
 		return
 	}
 
-	err := billetService.DeleteBilletByID(input, billetID, billetService)
+	err := a.billetService.DeleteBilletByID(input, billetID)
 
 	if err == nil {
 		c.JSON(http.StatusOK, "Boleto deletado com sucesso!")
